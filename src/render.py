@@ -3,15 +3,16 @@ This module contains the renderer class
 which draws the current puzzle state onto the screen.
 """
 
-from src.puzzle.enums import BorderStatus, CardinalDirection, ExtendedDirection
 import pygame as pg
 from pygame.rect import Rect
 from pygame.surface import Surface
 from functools import cache
 from typing import Any, Optional
 
-from .point import Point
-from .puzzle.board import Board
+from src.point import Point
+from src.puzzle.board import Board
+from src.puzzle.board_tools import BoardTools
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection
 
 pg.init()
 pg.display.set_caption('Slitherlink Squares')
@@ -47,9 +48,7 @@ class Renderer:
 
     def __init__(self, board: Board) -> None:
         self.board = board
-        self.board.borders[23] = BorderStatus.ACTIVE
-        self.board.borders[33] = BorderStatus.BLANK
-
+        self.boardTools = BoardTools(board.rows, board.cols)
         self.screen: Surface = pg.display.set_mode(SCREEN_SIZE)
         self.baseSurface: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
         self.vtxSurface: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
@@ -103,10 +102,10 @@ class Renderer:
 
         for i in range(self.board.rows):
             for j in range(self.board.cols):
-                ul = self.getVertexCoords(i, j, ExtendedDirection.ULEFT)
-                ur = self.getVertexCoords(i, j, ExtendedDirection.URIGHT)
-                ll = self.getVertexCoords(i, j, ExtendedDirection.LLEFT)
-                lr = self.getVertexCoords(i, j, ExtendedDirection.LRIGHT)
+                ul = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
+                ur = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
+                ll = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
+                lr = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
                 center = self.getCellCoords(i, j)
                 _drawDashedLine(ul, ur)
                 _drawDashedLine(ul, ll)
@@ -140,17 +139,17 @@ class Renderer:
             status = self.board.getBorderStatus(row, col, direction)
             if status in (BorderStatus.ACTIVE, BorderStatus.BLANK):
                 if direction == CardinalDirection.TOP:
-                    v1 = self.getVertexCoords(i, j, ExtendedDirection.ULEFT)
-                    v2 = self.getVertexCoords(i, j, ExtendedDirection.URIGHT)
+                    v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
+                    v2 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
                 elif direction == CardinalDirection.RIGHT:
-                    v1 = self.getVertexCoords(i, j, ExtendedDirection.URIGHT)
-                    v2 = self.getVertexCoords(i, j, ExtendedDirection.LRIGHT)
+                    v1 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
+                    v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
                 elif direction == CardinalDirection.BOT:
-                    v1 = self.getVertexCoords(i, j, ExtendedDirection.LLEFT)
-                    v2 = self.getVertexCoords(i, j, ExtendedDirection.LRIGHT)
+                    v1 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
+                    v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
                 elif direction == CardinalDirection.LEFT:
-                    v1 = self.getVertexCoords(i, j, ExtendedDirection.ULEFT)
-                    v2 = self.getVertexCoords(i, j, ExtendedDirection.LLEFT)
+                    v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
+                    v2 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
                 else:
                     raise ValueError(f'Invalid direction: {direction}')
                 
@@ -216,7 +215,7 @@ class Renderer:
         return rect
 
     @cache
-    def getVertexCoords(self, row: int, col: int, direction: ExtendedDirection) -> tuple[int, int]:
+    def getVertexCoords(self, row: int, col: int, direction: DiagonalDirection) -> tuple[int, int]:
         """
         Get the screen coordinates of the cell's vertex in the given direction.
         The upperleft-most vertex is always at coordinate (0, 0).
@@ -229,15 +228,15 @@ class Renderer:
         Returns:
             The vertex's screen coordinates.
         """
-        if direction in (ExtendedDirection.ULEFT, ExtendedDirection.URIGHT):
+        if direction in (DiagonalDirection.ULEFT, DiagonalDirection.URIGHT):
             x = col * self.cellSize[0]
-            x += self.cellSize[0] if direction == ExtendedDirection.URIGHT else 0
+            x += self.cellSize[0] if direction == DiagonalDirection.URIGHT else 0
             y = row * self.cellSize[1]
-        elif direction in (ExtendedDirection.LLEFT, ExtendedDirection.LRIGHT):
+        elif direction in (DiagonalDirection.LLEFT, DiagonalDirection.LRIGHT):
             if row < self.board.rows - 1:
                 return self.getVertexCoords(row + 1, col, direction.ceiling())
             x = col * self.cellSize[0]
-            x += self.cellSize[0] if direction == ExtendedDirection.LRIGHT else 0
+            x += self.cellSize[0] if direction == DiagonalDirection.LRIGHT else 0
             y = (row * self.cellSize[1]) + self.cellSize[1]
         else:
             raise ValueError
@@ -344,7 +343,7 @@ class Renderer:
                         dist = pt.dist(borderPt)
                         if dist < refDist and dist < minDist:
                             minDist = dist
-                            closestIdx = self.board.getBorderIdx(i, j, direction)
+                            closestIdx = self.boardTools.getBorderIdx(i, j, direction)
         else:
             for direction in CardinalDirection:
                 coords = self.getBorderCoords(closestCell[0], closestCell[1], direction)
@@ -352,5 +351,5 @@ class Renderer:
                 dist = pt.dist(borderPt)
                 if dist < refDist and dist < minDist:
                     minDist = dist
-                    closestIdx = self.board.getBorderIdx(closestCell[0], closestCell[1], direction)
+                    closestIdx = self.boardTools.getBorderIdx(closestCell[0], closestCell[1], direction)
         return closestIdx

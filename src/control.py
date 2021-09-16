@@ -2,15 +2,16 @@
 This module contains the control class for the entire game.
 """
 
-from src.puzzle.enums import BorderStatus
 from typing import Optional
 import pygame as pg
 from pygame.display import update
 from pygame.time import Clock
 
-from .puzzle.board import Board
 from .render import Renderer
 from .point import Point
+from .puzzle.board import Board
+from .puzzle.solver import Solver
+from .puzzle.enums import BorderStatus, DiagonalDirection
 
 FPS = 30
 TIME_PER_UPDATE = 1000.0 / FPS
@@ -27,6 +28,7 @@ class Control:
         self.done = False
         self.clock: Clock = pg.time.Clock()
         self.renderer = Renderer(board)
+        self.solver = Solver(board)
 
     def start(self) -> None:
         """
@@ -48,7 +50,7 @@ class Control:
             if event.type == pg.QUIT:
                 self.done = True
             elif event.type == pg.KEYDOWN:
-                self.keys = pg.key.get_pressed()
+                self.handleKeyDown(pg.key.get_pressed())
                 self.renderer.draw()
             elif event.type == pg.MOUSEBUTTONDOWN:
                 mouseX, mouseY = pg.mouse.get_pos()
@@ -61,6 +63,18 @@ class Control:
                     # Right Click
                     self.clickCell(closestCell)
 
+    def handleKeyDown(self, keys) -> None:
+        """
+        Handle the key presses.
+
+        Arguments:
+            keys: The keys that were pressed.
+        """
+        if keys[pg.K_s]:
+            self.solver.solveBoard()
+        elif keys[pg.K_r]:
+            self.resetBoard()
+
     def clickBorder(self, borderIdx: Optional[int]) -> None:
         """
         Handle the border click.
@@ -69,12 +83,8 @@ class Control:
             borderIdx: The index of the clicked border.
         """
         if borderIdx is not None:
-            if self.board.borders[borderIdx] == BorderStatus.UNSET:
-                self.board.borders[borderIdx] = BorderStatus.ACTIVE
-            elif self.board.borders[borderIdx] == BorderStatus.ACTIVE:
-                self.board.borders[borderIdx] = BorderStatus.BLANK
-            elif self.board.borders[borderIdx] == BorderStatus.BLANK:
-                self.board.borders[borderIdx] = BorderStatus.UNSET
+            print(f'Clicked border {borderIdx}')
+            self.board.toggleBorder(borderIdx)
             self.renderer.draw()
 
     def clickCell(self, cellIdx: Optional[tuple[int, int]]) -> None:
@@ -84,3 +94,12 @@ class Control:
         Arguments:
             borderIdx: The index of the clicked border.
         """
+        print(f'Clicked cell {cellIdx}')
+        self.renderer.draw()
+
+    def resetBoard(self) -> None:
+        """
+        Reset all borders to `UNSET` status.
+        """
+        for borderIdx in range(len(self.board.borders)):
+            self.board.setBorderToUnset(borderIdx)

@@ -8,6 +8,9 @@ OptInt = Optional[int]
 
 Coord = Tuple[int, int]
 
+CellBdrs = list[list[tuple[int, int, int, int]]]
+
+
 class CardinalDirection(IntEnum):
     """
     The four cardinal directions: `TOP`, `RIGHT`, `BOT`, and `LEFT`.
@@ -18,28 +21,47 @@ class CardinalDirection(IntEnum):
     LEFT = 3
 
 
-class ExtendedDirection(IntEnum):
+class DiagonalDirection(IntEnum):
     """
-    The four cardinal directions plus its diagonals.
+    The four diagonal directions: `ULEFT`, `URIGHT`, `LRIGHT`, and `LLEFT`.
     """
-    TOP = 0
-    URIGHT = 1
-    RIGHT = 2
-    LRIGHT = 3
-    BOT = 4
-    LLEFT = 5
-    LEFT = 6
-    ULEFT = 7
+    URIGHT = 0
+    LRIGHT = 1
+    LLEFT = 2
+    ULEFT = 3
 
-    def ceiling(self) -> ExtendedDirection:
+    def opposite(self) -> DiagonalDirection:
+        """
+        Returns the opposite direction.
+        """
+        if self == DiagonalDirection.URIGHT:
+            return DiagonalDirection.LLEFT
+        elif self == DiagonalDirection.LRIGHT:
+            return DiagonalDirection.ULEFT
+        elif self == DiagonalDirection.LLEFT:
+            return DiagonalDirection.URIGHT
+        elif self == DiagonalDirection.ULEFT:
+            return DiagonalDirection.LRIGHT
+
+    def ceiling(self) -> DiagonalDirection:
         """
         Convert the direction to its top version.
         """
-        if self == ExtendedDirection.LLEFT:
-            return ExtendedDirection.ULEFT
-        if self == ExtendedDirection.LRIGHT:
-            return ExtendedDirection.URIGHT
+        if self == DiagonalDirection.LLEFT:
+            return DiagonalDirection.ULEFT
+        if self == DiagonalDirection.LRIGHT:
+            return DiagonalDirection.URIGHT
         return self
+
+    def __str__(self) -> str:
+        if self == DiagonalDirection.URIGHT:
+            return "URIGHT"
+        elif self == DiagonalDirection.LRIGHT:
+            return "LRIGHT"
+        elif self == DiagonalDirection.LLEFT:
+            return "LLEFT"
+        elif self == DiagonalDirection.ULEFT:
+            return "ULEFT"
 
 
 class BorderStatus(IntEnum):
@@ -74,3 +96,15 @@ class BorderStatus(IntEnum):
         if self == BorderStatus.BLANK:
             return "BLANK"
         raise AssertionError("Invalid Border Status")
+
+
+class CornerEntry(IntEnum):
+    """
+    An enum which represents how many "outer arms" are active
+    in a cell's corner.
+    """
+    ZERO = 0
+    ONE = 1
+    TWO = 2
+    ZEROTWO = 3
+    UNKNOWN = 4

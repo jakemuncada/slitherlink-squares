@@ -1,9 +1,10 @@
 """Board"""
 
 from copy import deepcopy
-from functools import cache
 from typing import Optional
-from .enums import BorderStatus, CardinalDirection, Coord, OptInt
+
+from src.puzzle.board_tools import BoardTools
+from src.puzzle.enums import BorderStatus, CardinalDirection, OptInt
 
 
 class Board:
@@ -44,6 +45,7 @@ class Board:
 
         self.rows = rows
         self.cols = cols
+        self.tools = BoardTools(rows, cols)
         self.cells = cells if cells is not None else \
             [[None for _ in range(cols)] for _ in range(rows)]
         self.borders = borders if borders is not None else \
@@ -78,11 +80,52 @@ class Board:
 
         return cls(rows, cols, cells)
 
-    def copy(self):
-        """Returns a deep copy of the Board."""
+    def clone(self):
+        """
+        Returns a deep copy of the Board.
+        """
         cellsCopy = deepcopy(self.cells)
         bordersCopy = deepcopy(self.borders)
         return Board(self.rows, self.cols, cellsCopy, bordersCopy)
+
+    ##################################################
+    # BORDER STATUS SETTERS
+    ##################################################
+
+    def toggleBorder(self, borderIdx) -> None:
+        """
+        Toggle the target border's status.
+        """
+        if self.borders[borderIdx] == BorderStatus.UNSET:
+            self.setBorderToActive(borderIdx)
+        elif self.borders[borderIdx] == BorderStatus.ACTIVE:
+            self.setBorderToBlank(borderIdx)
+        elif self.borders[borderIdx] == BorderStatus.BLANK:
+            self.setBorderToUnset(borderIdx)
+
+    def setBorderStatus(self, borderIdx: int, newStatus: BorderStatus) -> None:
+        """
+        Set the target border to a new status.
+        """
+        self.borders[borderIdx] = newStatus
+
+    def setBorderToUnset(self, borderIdx: int) -> None:
+        """
+        Set the target border's status to `UNSET`.
+        """
+        self.borders[borderIdx] = BorderStatus.UNSET
+
+    def setBorderToActive(self, borderIdx: int) -> None:
+        """
+        Set the target border's status to `ACTIVE`.
+        """
+        self.borders[borderIdx] = BorderStatus.ACTIVE
+
+    def setBorderToBlank(self, borderIdx: int) -> None:
+        """
+        Set the target border's status to `BLANK`.
+        """
+        self.borders[borderIdx] = BorderStatus.BLANK
 
     ##################################################
     # GET BORDERS
@@ -100,43 +143,30 @@ class Board:
         Returns:
             The border status of the target border.
         """
-        idx = self.getBorderIdx(row, col, direction)
+        idx = self.tools.getBorderIdx(row, col, direction)
         return self.borders[idx]
 
-    @cache
-    def getBorderIdx(self, row: int, col: int, direction: CardinalDirection) -> int:
+    def getUnsetBordersOfCell(self, row: int, col: int) -> list[int]:
         """
-        Get the index of the target border.
+        Returns a list of the indices of the `UNSET` borders that surround a target cell.
 
         Arguments:
-            row: The cell's row index.
-            col: The cell's column index.
-            direction: The direction of the target border.
-
-        Returns:
-            The index of the target border.
+            row: The row index of the target cell.
+            col: The column index of the target cell.
         """
-        idx = ((self.cols * 2) + 1) * row
-        if direction == CardinalDirection.TOP:
-            idx += col
-        elif direction == CardinalDirection.LEFT:
-            idx += self.cols + col
-        elif direction == CardinalDirection.RIGHT:
-            idx += self.cols + col + 1
-        elif direction == CardinalDirection.BOT:
-            idx += (self.cols * 2) + 1 + col
-        else:
-            raise IndexError()
-        return idx
-
-    def getUnsetBorders(self) -> list[Coord]:
-        """Returns the list of all `UNSET` borders. Each border is defined by a (row, col) tuple."""
-        unsetBorders: list[Coord] = []
-        for i in range(len(self.borders)):
-            for j in range(len(self.borders[i])):
-                if self.borders[i][j] == BorderStatus.UNSET:
-                    unsetBorders.append((i, j))
+        unsetBorders: list[int] = []
+        for direction in CardinalDirection:
+            idx = self.tools.getBorderIdx(row, col, direction)
+            if self.borders[idx] == BorderStatus.UNSET:
+                unsetBorders.append(idx)
         return unsetBorders
 
-    def getBordersOfCell(self, cellRow, cellCol):
-        """Returns the list of borders of a given cell. Each border is defined by a (row, col) tuple."""
+    def getAllUnsetBorders(self) -> list[int]:
+        """
+        Returns the list containing the indices of all `UNSET` borders.
+        """
+        unsetBorders: list[int] = []
+        for idx in range(len(self.borders)):
+            if self.borders[idx] == BorderStatus.UNSET:
+                unsetBorders.append(idx)
+        return unsetBorders
