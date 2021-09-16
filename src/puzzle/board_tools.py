@@ -14,6 +14,7 @@ from typing import Optional
 
 from src.puzzle.enums import CardinalDirection, DiagonalDirection
 
+
 class BoardTools:
     """
     Class containing various calculation methods involving the board.
@@ -32,7 +33,7 @@ class BoardTools:
     def isValidBorderIdx(self, borderIdx: int) -> bool:
         return _isValidBorderIdx(self.rows, self.cols, borderIdx)
 
-    def getCellIdxAtAdjCorner(self, row: int, col: int, dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
+    def getCellIdxAtDiagCorner(self, row: int, col: int, dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
         return _getCellIdxAtAdjCorner(self.rows, self.cols, row, col, dxn)
 
     def getBorderIdx(self, row: int, col: int, direction: CardinalDirection) -> int:
@@ -40,7 +41,7 @@ class BoardTools:
 
     def getCellBorders(self, row: int, col: int) -> tuple[int, int, int, int]:
         return _getCellBorders(self.cols, row, col)
-    
+
     def isBorderHorizontal(self, borderIdx: int) -> bool:
         return _isBorderHorizontal(borderIdx)
 
@@ -60,7 +61,7 @@ class BoardTools:
         return _getArms(self.rows, self.cols, row, col, cornerDir)
 
     def getArmsOfCell(self, row: int, col: int) \
-        -> tuple[list[int], list[int], list[int], list[int]]:
+            -> tuple[list[int], list[int], list[int], list[int]]:
         return _getArmsOfCell(self.rows, self.cols, row, col)
 
 
@@ -72,6 +73,7 @@ def _isValidCellIdx(rows: int, cols: int, row: int, col: int) -> bool:
     """
     return row >= 0 and row < rows and col >= 0 and col < cols
 
+
 @cache
 def _isValidBorderIdx(rows: int, cols: int, borderIdx: int) -> bool:
     """
@@ -79,6 +81,7 @@ def _isValidBorderIdx(rows: int, cols: int, borderIdx: int) -> bool:
     Returns false otherwise.
     """
     return borderIdx >= 0 and borderIdx < _numBorders(rows, cols)
+
 
 @cache
 def _numBorders(rows: int, cols: int) -> int:
@@ -88,9 +91,10 @@ def _numBorders(rows: int, cols: int) -> int:
     """
     return (((cols * 2) + 1) * rows) + cols
 
+
 @cache
-def _getCellIdxAtAdjCorner(rows: int, cols: int, row: int, col: int, \
-    dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
+def _getCellIdxAtAdjCorner(rows: int, cols: int, row: int, col: int,
+                           dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
     """
     Get the cell index of the diagonally adjacent cell.
 
@@ -124,6 +128,7 @@ def _getCellIdxAtAdjCorner(rows: int, cols: int, row: int, col: int, \
         return None
     return (targetRow, targetCol)
 
+
 @cache
 def _getBorderIdx(cols: int, row: int, col: int, direction: CardinalDirection) -> int:
     """
@@ -151,6 +156,7 @@ def _getBorderIdx(cols: int, row: int, col: int, direction: CardinalDirection) -
         raise IndexError()
     return idx
 
+
 @cache
 def _getCellBorders(cols: int, row: int, col: int) -> tuple[int, int, int, int]:
     """
@@ -169,6 +175,7 @@ def _getCellBorders(cols: int, row: int, col: int) -> tuple[int, int, int, int]:
     botBdr = _getBorderIdx(cols, row, col, CardinalDirection.BOT)
     leftBdr = _getBorderIdx(cols, row, col, CardinalDirection.LEFT)
     return (topBdr, rightBdr, botBdr, leftBdr)
+
 
 @cache
 def _isBorderHorizontal(cols: int, borderIdx: int) -> bool:
@@ -194,6 +201,7 @@ def _isBorderHorizontal(cols: int, borderIdx: int) -> bool:
             thresholdIdx += cols
         isHorizontal = not isHorizontal
     return isHorizontal
+
 
 @cache
 def _getConnectedBorders(rows: int, cols: int, borderIdx: int) -> tuple[list[int], list[int]]:
@@ -262,6 +270,7 @@ def _getConnectedBorders(rows: int, cols: int, borderIdx: int) -> tuple[list[int
                 rightBot.append(borderIdx + cols + 1)
     return (leftTop, rightBot)
 
+
 @cache
 def _getConnectedBordersList(rows: int, cols: int, borderIdx: int) -> list[int]:
     """
@@ -293,6 +302,7 @@ def _getCommonVertex(rows: int, cols: int, borderIdx1: int, borderIdx2: int) -> 
         return [bdr for bdr in conn[1]]
     return None
 
+
 @cache
 def _getCornerBorderIndices(cols: int, row: int, col: int, cornerDir: DiagonalDirection) -> tuple[int, int]:
     """
@@ -319,16 +329,17 @@ def _getCornerBorderIndices(cols: int, row: int, col: int, cornerDir: DiagonalDi
     elif cornerDir == DiagonalDirection.LLEFT:
         d1 = CardinalDirection.BOT
         d2 = CardinalDirection.LEFT
-    
+
     border1 = _getBorderIdx(cols, row, col, d1)
     border2 = _getBorderIdx(cols, row, col, d2)
     return (border1, border2)
+
 
 @cache
 def _getArms(rows: int, cols: int, row: int, col: int, cornerDir: DiagonalDirection) -> list[int]:
     """
     Returns the arms of the cell at the target corner.
-    
+
     Arguments:
         rows: The number of rows in the board.
         cols: The number of columns in the board.
@@ -360,12 +371,13 @@ def _getArms(rows: int, cols: int, row: int, col: int, cornerDir: DiagonalDirect
         raise ValueError(f'Invalid cornerDir: {cornerDir}')
     return arms
 
+
 @cache
 def _getArmsOfCell(rows: int, cols: int, row: int, col: int) \
-    -> tuple[list[int], list[int], list[int], list[int]]:
+        -> tuple[list[int], list[int], list[int], list[int]]:
     """
     Returns the arms of the cell at each corner.
-    
+
     Arguments:
         rows: The number of rows in the board.
         cols: The number of columns in the board.

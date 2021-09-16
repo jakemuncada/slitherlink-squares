@@ -320,7 +320,7 @@ class SolverTools:
         if cornerStat1 == BorderStatus.BLANK or cornerStat2 == BorderStatus.BLANK:
             return True
 
-        nextCellIdx = board.tools.getCellIdxAtAdjCorner(currRow, currCol, dxn)
+        nextCellIdx = board.tools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
         return self.is3CellIndirectPokedByPropagation(board, nextCellIdx, dxn)
 
     def getContinuousUnsetBordersOfCell(self, board: Board, row: int, col: int) -> list[list[int]]:
