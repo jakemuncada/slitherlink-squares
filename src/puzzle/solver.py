@@ -52,6 +52,8 @@ class Solver():
         moveFound = True
         while moveFound:
             moveFound = self.solveObvious()
+            if not moveFound:
+                moveFound = self.removeLoopMakingMove()
         
         print('No more moves found. Time elapsed: {:.3f} seconds.'.format(time.time() - t0))
 
@@ -106,6 +108,73 @@ class Solver():
                         foundMove = True
 
         return foundMove
+
+    def removeLoopMakingMove(self) -> bool:
+        """
+        Find an `UNSET` border that, if set to `ACTIVE`, will create a loop.
+        Since loops are prohibited, this border should be set to `BLANK`.
+
+        Returns:
+            True if such a border was removed. False otherwise.
+        """
+        t0 = time.time()
+
+        # Get all active and unset borders
+        activeBorders: set[int] = set()
+        unsetBorders: set[int] = set()
+        for bdrIdx in range(len(self.board.borders)):
+            if self.board.borders[bdrIdx] == BorderStatus.ACTIVE:
+                activeBorders.add(bdrIdx)
+            elif self.board.borders[bdrIdx] == BorderStatus.UNSET:
+                unsetBorders.add(bdrIdx)
+
+        processedBorders: set[BorderStatus] = set()
+        borderGroup: dict[int, int] = {}
+
+        # Set all connected active borders to the same group ID
+        def _process(idx: int, groupId: int) -> None:
+            if idx in processedBorders:
+                return
+            processedBorders.add(idx)
+            borderGroup[idx] = groupId
+            connList = self.board.tools.getConnectedBordersList(idx)
+            for connBdr in connList:
+                if connBdr in activeBorders:
+                    _process(connBdr, groupId)
+
+        currId = 0
+        for bdrIdx in activeBorders:
+            if bdrIdx in processedBorders:
+                continue
+            _process(bdrIdx, currId)
+            currId += 1
+
+        moveCount = 0
+        moveFound = False
+        for bdrIdx in unsetBorders:
+            conn = self.board.tools.getConnectedBorders(bdrIdx)
+            group1 = None
+            group2 = None
+            for connBdr in conn[0]:
+                if connBdr in processedBorders:
+                    group1 = borderGroup[connBdr]
+                    break
+            for connBdr in conn[1]:
+                if connBdr in processedBorders:
+                    group2 = borderGroup[connBdr]
+                    break
+            
+            if group1 is not None and group2 is not None and group1 == group2:
+                if self.setBorder(bdrIdx, BorderStatus.BLANK):
+                    self.displayMoveDesc(f'Removing loop-making border: {bdrIdx}')
+                    moveFound = True
+                    moveCount += 1
+                    break
+
+        print('Loop-making borders: {} borders found [{:.3f} seconds]'.format(moveCount, time.time() - t0))
+
+        return moveFound
+            
 
     def processCell(self, cellIdx: tuple[int, int]) -> bool:
         """
