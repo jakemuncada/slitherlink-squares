@@ -4,10 +4,10 @@ Solver for Slitherlink-Squares.
 
 import time
 
-from src.puzzle.solver_init import _setBorder, solveInit
+from src.puzzle.solver_init import solveInit
 from src.puzzle.solver_tools import SolverTools
 from src.puzzle.enums import BorderStatus, CardinalDirection, CellBdrs, DiagonalDirection
-from .board import Board
+from src.puzzle.board import Board
 
 
 class Solver():
@@ -130,6 +130,14 @@ class Solver():
                         self.displayMoveDesc(f'Removing remaining borders: Cell {cellIdx}')
                         foundMove = True
 
+            if reqNum == 3:
+                # If the 3-cell has an active arm, poke it.
+                for dxn in DiagonalDirection:
+                    armsStatus = self.board.getArmsStatus(row, col, dxn)
+                    if any(status == BorderStatus.ACTIVE for status in armsStatus):
+                        self.handleCellPoke(row, col, dxn)
+                        break
+
             if reqNum == 2:
                 foundMove = foundMove | self.handle2CellDiagonallyOppositeActiveArms(row, col)
 
@@ -219,7 +227,6 @@ class Solver():
         Returns:
             True if a move was found. False otherwise.
         """
-        print(f'Cell ({origRow}, {origCol}) is initiating a poke at {dxn}')
         if dxn == DiagonalDirection.ULEFT:
             targetRow = origRow - 1
             targetCol = origCol - 1
@@ -304,12 +311,13 @@ class Solver():
             # Check if there is an active arm from the poke direction.
             # If there is, remove the other arms from that corner.
             arms = self.board.tools.getArms(row, col, dxn)
-            countUnset, countActive, _ = self.tools.getStatusCount(self.board, arms)
+            armsStatuses = [self.board.borders[armIdx] for armIdx in arms]
+            countUnset, countActive, _ = self.tools.getStatusCount(self.board, armsStatuses)
             # INVALID: If the number of active arms is more than 1
             if countActive == 1 and countUnset > 0:
                 for bdrIdx in arms:
                     if self.board.borders[bdrIdx] == BorderStatus.UNSET:
-                        if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
+                        if self.setBorder(bdrIdx, BorderStatus.BLANK):
                             self.displayMoveDesc(f'Removing unset arm of 3-cell where poke occurred: Cell {row}, {col}')
                             foundMove = True
 

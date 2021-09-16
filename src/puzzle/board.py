@@ -146,7 +146,7 @@ class Board:
         idx = self.tools.getBorderIdx(row, col, direction)
         return self.borders[idx]
 
-    def getCornerBordersStatus(self, row: int, col: int, dxn: DiagonalDirection) -> tuple[BorderStatus, BorderStatus]:
+    def getCornerStatus(self, row: int, col: int, dxn: DiagonalDirection) -> tuple[BorderStatus, BorderStatus]:
         """
         Get the statuses of the two borders connected to the specified corner direction.
 
@@ -162,6 +162,21 @@ class Board:
         stat1 = self.borders[bdr1]
         stat2 = self.borders[bdr2]
         return (stat1, stat2)
+
+    def getArmsStatus(self, row: int, col: int, dxn: DiagonalDirection) -> list[BorderStatus]:
+        """
+        Get the statuses of the arms connected to the specified corner direction.
+
+        Arguments:
+            row: The cell's row index.
+            col: The cell's column index.
+            dxn: The direction of the target corner.
+
+        Returns:
+            the statuses of the arms connected to the specified corner direction.
+        """
+        arms = self.tools.getArms(row, col, dxn)
+        return [self.borders[bdrIdx] for bdrIdx in arms]
 
     def getUnsetBordersOfCell(self, row: int, col: int) -> list[int]:
         """

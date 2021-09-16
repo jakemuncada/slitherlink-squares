@@ -218,18 +218,18 @@ class SolverTools:
 
         if reqNum == 3 and countActive > 1:
             for dxn in DiagonalDirection:
-                bdrStat1, bdrStat2 = board.getCornerBordersStatus(row, col, dxn)
+                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
                 if bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.ACTIVE:
                     pokeDirs.add(dxn.opposite())
 
         if reqNum == 1 and countBlank == 2:
             for dxn in DiagonalDirection:
-                bdrStat1, bdrStat2 = board.getCornerBordersStatus(row, col, dxn)
-                if bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.ACTIVE:
-                    pokeDirs.add(dxn.opposite())
+                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
+                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+                    pokeDirs.add(dxn)
 
         for dxn in DiagonalDirection:
-            bdrStat1, bdrStat2 = board.getCornerBordersStatus(row, col, dxn)
+            bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
             if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
                 (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
                 pokeDirs.add(dxn)
