@@ -275,6 +275,20 @@ class Solver():
         foundMove = False
         reqNum = self.board.cells[row][col]
 
+        # If a cell is being poked at a particular corner and a border on that corner 
+        # is already active, remove the other border on that corner.
+        bdrIdx1, bdrIdx2 = self.board.tools.getCornerBorderIndices(row, col, dxn)
+        bdrStat1 = self.board.borders[bdrIdx1]
+        bdrStat2 = self.board.borders[bdrIdx2]
+        if bdrStat1 == BorderStatus.ACTIVE:
+            if self.setBorder(bdrIdx2, BorderStatus.BLANK):
+                self.displayMoveDesc(f'Removing other border because cell is poked: Cell {row}, {col}')
+                foundMove = True
+        elif bdrStat2 == BorderStatus.ACTIVE:
+            if self.setBorder(bdrIdx1, BorderStatus.BLANK):
+                self.displayMoveDesc(f'Removing other border because cell is poked: Cell {row}, {col}')
+                foundMove = True
+
         # If a 1-cell is poked, we know that its sole active border must be on that corner,
         # so we should remove the borders on the opposite corner.
         if reqNum == 1:
