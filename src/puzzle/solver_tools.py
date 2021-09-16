@@ -2,9 +2,10 @@
 This module contains functions for solving the board.
 """
 
-from src.puzzle.enums import BorderStatus, CardinalDirection, CornerEntry, DiagonalDirection
+from typing import Union
 
 from .board import Board
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection
 
 
 class SolverTools:
@@ -58,7 +59,7 @@ class SolverTools:
 
         return (topStatus, rightStatus, botStatus, leftStatus)
 
-    def getStatusCount(self, board: Board, bdrIdxList: list[int]) -> tuple[int, int, int]:
+    def getStatusCount(self, board: Board, bdrIdxList: Union[list[int], set[int], tuple]) -> tuple[int, int, int]:
         """
         Returns the number of `UNSET`, `ACTIVE` and `BLANK` borders
         in that particular order.
@@ -200,6 +201,77 @@ class SolverTools:
                 return True
         return False
 
+    def getDirectionsCellIsPokingAt(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
+        """
+        Returns a list of corner directions where the given cell is poking at.
+
+        Arguments:
+            board: The board.
+            row: The row index of the cell.
+            col: The column index of the cell.
+        """
+        pokeDirs: set[DiagonalDirection] = set()
+
+        reqNum = board.cells[row][col]
+        borders = board.tools.getCellBorders(row, col)
+        _, countActive, countBlank = self.getStatusCount(board, borders)
+
+        if reqNum == 3 and countActive > 1:
+            for dxn in DiagonalDirection:
+                bdrStat1, bdrStat2 = board.getCornerBordersStatus(row, col, dxn)
+                if bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.ACTIVE:
+                    pokeDirs.add(dxn.opposite())
+
+        if reqNum == 1 and countBlank == 2:
+            for dxn in DiagonalDirection:
+                bdrStat1, bdrStat2 = board.getCornerBordersStatus(row, col, dxn)
+                if bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.ACTIVE:
+                    pokeDirs.add(dxn.opposite())
+
+        for dxn in DiagonalDirection:
+            bdrStat1, bdrStat2 = board.getCornerBordersStatus(row, col, dxn)
+            if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
+                (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
+                pokeDirs.add(dxn)
+        
+        return list(pokeDirs)
+
+
+    def getDirectionsCellIsBeingExplicitlyPokedFrom(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
+        """
+        Returns a list of corner directions where the given cell is being explicitly poked from.
+
+        An 'explicit poke' is when exactly one arm from the given direction is `ACTIVE`
+        and the rest are `BLANK`.
+
+        Arguments:
+            board: The board.
+            row: The row index of the target cell.
+            col: The column index of the target cell.
+        """
+        pokeDirs: list[DiagonalDirection] = []
+        for dxn in DiagonalDirection:
+            if self.isCellExplicitlyPoked(board, row, col, dxn):
+                pokeDirs.append(dxn)
+        return pokeDirs
+
+    def isCellExplicitlyPoked(self, board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
+        """
+        Returns true if the cell is being explicitly poked from a specific direction.
+
+        An 'explicit poke' is when exactly one arm from the given direction is `ACTIVE`
+        and the rest are `BLANK`.
+
+        Arguments:
+            board: The board.
+            row: The row index of the target cell.
+            col: The column index of the target cell.
+            dxn: The specified direction.
+        """
+        arms = board.tools.getArms(row, col, dxn)
+        countUnset, countActive, _ = self.getStatusCount(board, arms)
+        return countActive == 1 and countUnset == 0
+
     def getContinuousUnsetBordersOfCell(self, board: Board, row: int, col: int) -> list[list[int]]:
         """
         Returns the `UNSET` borders of a cell who are continuous with each other.
@@ -266,211 +338,3 @@ class SolverTools:
                 result.append([leftBdr, topBdr])
         
         return result
-
-    def getCornerProtrusionsOfCell(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
-        """
-        Determine which corners of the cell a protrusion occurs.
-        A protrusion is where exactly one border of that corner is `ACTIVE`.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-
-        Returns:
-            A list containing the corner directions where protrusions occur.
-        """
-        reqNum = board.cells[row][col]
-
-        # if reqNum == 3:
-        #     self.getCornerProtrusionsOf3Cell(board, row, col)
-        
-        if reqNum == 2:
-            self.getCornerProtrusionOf2Cell(board, row, col)
-
-    def getCornerProtrusionsOf3Cell(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
-        """
-        Determine which corners of the 3-cell a protrusion occurs.
-        A protrusion is where exactly one border of that corner is (or will be) `ACTIVE`.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-
-        Returns:
-            A list containing the corner directions where protrusions occur.
-        """
-        # result: list[DiagonalDirection] = []
-
-        
-        # countUnset, countActive, countBlank = self.getStatusCount(board, )
-
-        # isTopActive, isRightActive, isBotActive, isLeftActive = \
-        #     self.getCellBordersBoolStatus(board, row, col, BorderStatus.ACTIVE)
-
-        # isTopBlank, isRightBlank, isBotBlank, isLeftBlank = \
-        #     self.getCellBordersBoolStatus(board, row, col, BorderStatus.BLANK)
-
-        
-
-
-    def getCornerProtrusionsOf2Cell(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
-        """
-        Determine which corners of the 2-cell a protrusion occurs.
-        A protrusion is where exactly one border of that corner is `ACTIVE`.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-
-        Returns:
-            A list containing the corner directions where protrusions occur.
-        """
-        if board.cells[row][col] != 2:
-            return []
-
-        cornersAll = [DiagonalDirection.ULEFT, DiagonalDirection.URIGHT, DiagonalDirection.LRIGHT, DiagonalDirection.LLEFT]
-        cornersULLR = [DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT]
-        cornersURLL = [DiagonalDirection.URIGHT, DiagonalDirection.LLEFT]
-
-        # protrusions: set[DiagonalDirection] = set()        
-
-        # armsUL, armsUR, armsLR, armsLL = board.tools.getArmsOfCell(row, col)
-        # statUL = self.getStatusCount(board, armsUL)
-        # statUR = self.getStatusCount(board, armsUR)
-        # statLR = self.getStatusCount(board, armsLR)
-        # statLL = self.getStatusCount(board, armsLL)
-        
-        # # If the UL corner has one ACTIVE and no UNSET
-        # if statUL[1] == 1 and statUL[0] == 0:
-        #     protrusions.add(DiagonalDirection.ULEFT)
-        #     protrusions.add(DiagonalDirection.LRIGHT)
-        # # If the UR corner has one ACTIVE and no UNSET
-        # if statUR[1] == 1 and statUR[0] == 0:
-        #     protrusions.add(DiagonalDirection.URIGHT)
-        #     protrusions.add(DiagonalDirection.LLEFT)
-        # # If the LR corner has one ACTIVE and no UNSET
-        # if statLR[1] == 1 and statLR[0] == 0:
-        #     protrusions.add(DiagonalDirection.LRIGHT)
-        #     protrusions.add(DiagonalDirection.ULEFT)
-        # # If the LL corner has one ACTIVE and no UNSET
-        # if statLL[1] == 1 and statLL[0] == 0:
-        #     protrusions.add(DiagonalDirection.LLEFT)
-        #     protrusions.add(DiagonalDirection.URIGHT)
-        
-        # if len(protrusions) == 4:
-        #     return list(protrusions)
-
-        isTopActive, isRightActive, isBotActive, isLeftActive = \
-            self.getCellBordersBoolStatus(board, row, col, BorderStatus.ACTIVE)
-
-        isTopBlank, isRightBlank, isBotBlank, isLeftBlank = \
-            self.getCellBordersBoolStatus(board, row, col, BorderStatus.BLANK)
-
-        # If opposite borders are active
-        if isTopActive and isBotActive:
-            return cornersAll
-        if isLeftActive and isRightActive:
-            return cornersAll
-
-        # If adjacent borders are active
-        if isTopActive and isRightActive:
-            return cornersULLR
-        if isRightActive and isBotActive:
-            return cornersURLL
-        if isBotActive and isLeftActive:
-            return cornersULLR
-        if isLeftActive and isTopActive:
-            return cornersURLL
-
-        # If an active border is adjacent a blank border
-        if isTopActive and isRightBlank:
-            return cornersURLL
-        if isTopActive and isLeftBlank:
-            return cornersULLR
-        if isRightActive and isBotBlank:
-            return cornersULLR
-        if isRightActive and isTopBlank:
-            return cornersURLL
-        if isBotActive and isLeftBlank:
-            return cornersURLL
-        if isBotActive and isRightBlank:
-            return cornersULLR
-        if isLeftActive and isTopBlank:
-            return cornersULLR
-        if isLeftActive and isBotBlank:
-            return cornersURLL
-
-        return []
-
-    def getBoardCornerEntryStatus(self, board: Board) \
-        -> list[list[tuple[CornerEntry, CornerEntry, CornerEntry, CornerEntry]]]:
-        """
-        Get the corner entry status of each cell on the board.
-
-        Arguments:
-            board: The board.
-
-        Returns:
-            A two-dimensional array containing each cell's corner entry status.
-        """
-        boardCornerEntryStatus = []
-        for row in range(len(board.rows)):
-            rowCornerEntryStatus = []
-            for col in range(len(board.cols)):
-                status = self.getCellCornerEntryStatus(board, row, col)
-                rowCornerEntryStatus.append(status)
-            boardCornerEntryStatus.append(rowCornerEntryStatus)
-        return boardCornerEntryStatus
-
-    def getCellCornerEntryStatus(self, board: Board, row: int, col: int) \
-        -> tuple[CornerEntry, CornerEntry, CornerEntry, CornerEntry]:
-        """
-        Get the corner entry status of the target cell.
-
-        The corner entry status is a 4-tuple representing how many "outer arms" 
-        are active in the cell's corners. The tuple has the `ULEFT`, `URIGHT`,
-        `LRIGHT`, and `LLEFT` statuses in that order.
-
-        Arguments:
-            board: The board.
-
-        Returns:
-            A two-dimensional array containing each cell's corner entry status.
-        """
-        topBdr = board.tools.getBorderIdx(row, col, CardinalDirection.TOP)
-        rightBdr = board.tools.getBorderIdx(row, col, CardinalDirection.RIGHT)
-        botBdr = board.tools.getBorderIdx(row, col, CardinalDirection.BOT)
-        leftBdr = board.tools.getBorderIdx(row, col, CardinalDirection.LEFT)
-
-        isTopActive = board.borders[topBdr] == BorderStatus.ACTIVE
-        isRightActive = board.borders[rightBdr] == BorderStatus.ACTIVE
-        isBotActive = board.borders[botBdr] == BorderStatus.ACTIVE
-        isLeftActive = board.borders[leftBdr] == BorderStatus.ACTIVE
-
-        statusUL = CornerEntry.UNKNOWN
-        statusUR = CornerEntry.UNKNOWN
-        statusLR = CornerEntry.UNKNOWN
-        statusLL = CornerEntry.UNKNOWN
-
-        # ULEFT
-        # if (isTopActive and not isLeftActive) or (isLeftActive and not isTopActive):
-        #     statusUL = CornerEntry.ONE
-        # elif 
-
-        # URIGHT
-        # LRIGHT
-        # LLEFT
-
-
-        # contUnsetBdrs = self.getContinuousUnsetBordersOfCell(self.board, row, col)
-        # if len(contUnsetBdrs) > 0:
-        #     # If a 1-cell has continuous unset borders, they should be set to BLANK.
-        #     if reqNum == 1:
-        #         for bdrSet in contUnsetBdrs:
-        #             for bdrIdx in bdrSet:
-        #                 if self.setBorder(bdrIdx, BorderStatus.UNSET):
-        #                     print(f'Removing continous borders of 1-cell: {cellIdx}')
-        #                     foundMove = True

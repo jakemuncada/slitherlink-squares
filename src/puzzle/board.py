@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Optional
 
 from src.puzzle.board_tools import BoardTools
-from src.puzzle.enums import BorderStatus, CardinalDirection, OptInt
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, OptInt
 
 
 class Board:
@@ -145,6 +145,23 @@ class Board:
         """
         idx = self.tools.getBorderIdx(row, col, direction)
         return self.borders[idx]
+
+    def getCornerBordersStatus(self, row: int, col: int, dxn: DiagonalDirection) -> tuple[BorderStatus, BorderStatus]:
+        """
+        Get the statuses of the two borders connected to the specified corner direction.
+
+        Arguments:
+            row: The cell's row index.
+            col: The cell's column index.
+            dxn: The direction of the target corner.
+
+        Returns:
+            the statuses of the two borders connected to the specified corner direction.
+        """
+        bdr1, bdr2 = self.tools.getCornerBorderIndices(row, col, dxn)
+        stat1 = self.borders[bdr1]
+        stat2 = self.borders[bdr2]
+        return (stat1, stat2)
 
     def getUnsetBordersOfCell(self, row: int, col: int) -> list[int]:
         """

@@ -34,6 +34,9 @@ class BoardTools:
 
     def getBorderIdx(self, row: int, col: int, direction: CardinalDirection) -> int:
         return _getBorderIdx(self.cols, row, col, direction)
+
+    def getCellBorders(self, row: int, col: int) -> tuple[int, int, int, int]:
+        return _getCellBorders(self.cols, row, col)
     
     def isBorderHorizontal(self, borderIdx: int) -> bool:
         return _isBorderHorizontal(borderIdx)
@@ -47,8 +50,8 @@ class BoardTools:
     def getCommonVertex(self, borderIdx1: int, borderIdx2: int) -> Optional[list[int]]:
         return _getCommonVertex(self.rows, self.cols, borderIdx1, borderIdx2)
 
-    def getCornerOfCell(self, row: int, col: int, cornerDir: DiagonalDirection) -> tuple[int, int]:
-        return _getCornerOfCell(self.cols, row, col, cornerDir)
+    def getCornerBorderIndices(self, row: int, col: int, cornerDir: DiagonalDirection) -> tuple[int, int]:
+        return _getCornerBorderIndices(self.cols, row, col, cornerDir)
 
     def getArms(self, row: int, col: int, cornerDir: DiagonalDirection) -> list[int]:
         return _getArms(self.rows, self.cols, row, col, cornerDir)
@@ -108,6 +111,25 @@ def _getBorderIdx(cols: int, row: int, col: int, direction: CardinalDirection) -
     else:
         raise IndexError()
     return idx
+
+@cache
+def _getCellBorders(cols: int, row: int, col: int) -> tuple[int, int, int, int]:
+    """
+    Returns the border indices of the target cell's borders.
+
+    Arguments:
+        cols: The number of columns in the board.
+        row: The row of the target cell.
+        col: The column of the target cell.
+
+    Returns:
+        The border indices of the target cell's borders.
+    """
+    topBdr = _getBorderIdx(cols, row, col, CardinalDirection.TOP)
+    rightBdr = _getBorderIdx(cols, row, col, CardinalDirection.RIGHT)
+    botBdr = _getBorderIdx(cols, row, col, CardinalDirection.BOT)
+    leftBdr = _getBorderIdx(cols, row, col, CardinalDirection.LEFT)
+    return (topBdr, rightBdr, botBdr, leftBdr)
 
 @cache
 def _isBorderHorizontal(cols: int, borderIdx: int) -> bool:
@@ -233,7 +255,7 @@ def _getCommonVertex(rows: int, cols: int, borderIdx1: int, borderIdx2: int) -> 
     return None
 
 @cache
-def _getCornerOfCell(cols: int, row: int, col: int, cornerDir: DiagonalDirection) -> tuple[int, int]:
+def _getCornerBorderIndices(cols: int, row: int, col: int, cornerDir: DiagonalDirection) -> tuple[int, int]:
     """
     Returns the indices of the two borders in the target corner direction.
 
