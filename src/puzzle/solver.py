@@ -211,11 +211,40 @@ class Solver():
                         self.handleCellPoke(row, col, dxn)
                         break
 
-            if reqNum == 2:
+            elif reqNum == 2:
                 foundMove = foundMove | self.handle2CellDiagonallyOppositeActiveArms(row, col)
 
             if foundMove:
                 return True
+
+        if not foundMove:
+            # If the cell is a topmost cell, check if its TOP border is active.
+            if row == 0 and self.board.getBorderStatus(row, col, CardinalDirection.TOP) == BorderStatus.ACTIVE:
+                if col > 0:
+                    foundMove = foundMove | self.handleCellPoke(row, col - 1, DiagonalDirection.URIGHT)
+                if col < self.board.cols - 1:
+                    foundMove = foundMove | self.handleCellPoke(row, col + 1, DiagonalDirection.ULEFT)
+
+            # If the cell is a leftmost cell, check if its LEFT border is active.
+            if col == 0 and self.board.getBorderStatus(row, col, CardinalDirection.LEFT) == BorderStatus.ACTIVE:
+                if row > 0:
+                    foundMove = foundMove | self.handleCellPoke(row - 1, col, DiagonalDirection.LLEFT)
+                if row < self.board.rows - 1:
+                    foundMove = foundMove | self.handleCellPoke(row + 1, col, DiagonalDirection.ULEFT)
+
+            # If the cell is a rightmost cell, check if its RIGHT border is active.
+            if col == self.board.cols - 1 and self.board.getBorderStatus(row, col, CardinalDirection.RIGHT) == BorderStatus.ACTIVE:
+                if row > 0:
+                    foundMove = foundMove | self.handleCellPoke(row - 1, col, DiagonalDirection.LRIGHT)
+                if row < self.board.rows - 1:
+                    foundMove = foundMove | self.handleCellPoke(row + 1, col, DiagonalDirection.URIGHT)
+
+            # If the cell is a bottommost cell, check if its BOT border is active.
+            if row == self.board.rows - 1 and self.board.getBorderStatus(row, col, CardinalDirection.BOT) == BorderStatus.ACTIVE:
+                if col > 0:
+                    foundMove = foundMove | self.handleCellPoke(row, col - 1, DiagonalDirection.LRIGHT)
+                if col < self.board.cols - 1:
+                    foundMove = foundMove | self.handleCellPoke(row, col + 1, DiagonalDirection.LLEFT)
 
         # Check every cell if it is poking a diagonally adjacent cell.
         if not foundMove:
@@ -408,6 +437,9 @@ class Solver():
             if self.setBorder(bdrIdx1, BorderStatus.BLANK):
                 self.displayMoveDesc(f'Removing other border because cell is poked: Cell {row}, {col}')
                 foundMove = True
+
+        if foundMove:
+            return True
 
         # If a 1-cell is poked, we know that its sole active border must be on that corner,
         # so we should remove the borders on the opposite corner.
