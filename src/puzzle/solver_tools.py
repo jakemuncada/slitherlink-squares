@@ -228,6 +228,13 @@ class SolverTools:
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                     pokeDirs.add(dxn)
 
+        if reqNum == 2 and countActive == 1 and countBlank == 1:
+            for dxn in DiagonalDirection:
+                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
+                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+                    pokeDirs.add(dxn)
+                    break
+
         for dxn in DiagonalDirection:
             bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
             if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
