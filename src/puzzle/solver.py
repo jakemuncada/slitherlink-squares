@@ -3,6 +3,8 @@ Solver for Slitherlink-Squares.
 """
 
 import time
+from functools import cache
+from typing import Optional
 
 from src.puzzle.solver_init import solveInit
 from src.puzzle.solver_tools import SolverTools
@@ -149,7 +151,6 @@ class Solver():
             _process(bdrIdx, currId)
             currId += 1
 
-        moveCount = 0
         moveFound = False
         for bdrIdx in unsetBorders:
             conn = self.board.tools.getConnectedBorders(bdrIdx)
@@ -167,11 +168,10 @@ class Solver():
             if group1 is not None and group2 is not None and group1 == group2:
                 if self.setBorder(bdrIdx, BorderStatus.BLANK):
                     self.displayMoveDesc(f'Removing loop-making border: {bdrIdx}')
-                    moveFound = True
-                    moveCount += 1
-                    break
+                    print('Loop-making borders: Found in {:.3f} seconds'.format(time.time() - t0))
+                    return True
 
-        print('Loop-making borders: {} borders found [{:.3f} seconds]'.format(moveCount, time.time() - t0))
+        print('Loop-making borders: None found in {:.3f} seconds'.format(time.time() - t0))
 
         return moveFound
 
@@ -245,6 +245,18 @@ class Solver():
                     foundMove = foundMove | self.handleCellPoke(row, col - 1, DiagonalDirection.LRIGHT)
                 if col < self.board.cols - 1:
                     foundMove = foundMove | self.handleCellPoke(row, col + 1, DiagonalDirection.LLEFT)
+
+        if not foundMove and reqNum == 3:
+            # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
+            for dxn in DiagonalDirection:
+                bdrStat1, bdrStat2 = self.board.getCornerStatus(row, col, dxn.opposite())
+                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+                    currCellIdx = self.board.tools.getCellIdxAtAdjCorner(row, col, dxn)
+                    if self.tools.is3CellIndirectPokedByPropagation(self.board, currCellIdx, dxn):
+                        bdrIdx1, bdrIdx2 = self.board.tools.getCornerBorderIndices(row, col, dxn.opposite())
+                        self.setBorder(bdrIdx1, BorderStatus.ACTIVE)
+                        self.setBorder(bdrIdx2, BorderStatus.ACTIVE)
+                        foundMove = True
 
         # Check every cell if it is poking a diagonally adjacent cell.
         if not foundMove:
@@ -598,7 +610,13 @@ class Solver():
     def handle2CellDiagonallyOppositeActiveArms(self, row: int, col: int) -> bool:
         """
         Handle the case when a 2-cell has active arms in opposite corners.
-        Returns true if a move was found. Returns false otherwise.
+
+        Arguments:
+            row: The row index of the cell.
+            col: The column index of the cell.
+
+        Returns:
+            True if a move was found. False otherwise.
         """
         if self.board.cells[row][col] != 2:
             return False
@@ -625,6 +643,28 @@ class Solver():
                     foundMove = True
 
         return foundMove
+
+    @cache
+    def getDiagAdj2Cells(self, row: int, col: int) -> dict[DiagonalDirection, Optional[tuple[int, int]]]:
+        """
+        Get the target cell's diagonally adjacent 2-cells.
+
+        Arguments:
+            row: The row index of the cell.
+            col: The column index of the cell.
+
+        Returns:
+            A dictionary with DiagonalDirections as keys.
+            The values will be a list of the adjacent 2-cell's cell index.
+        """
+        adj2Cells: dict[DiagonalDirection, Optional[tuple[int, int]]] = {}
+        for dxn in DiagonalDirection:
+            cellIdx = self.board.tools.getCellIdxAtAdjCorner(row, col, dxn)
+            if cellIdx is not None and self.board.cells[cellIdx[0]][cellIdx[1]] == 2:
+                adj2Cells[dxn] = (cellIdx[0], cellIdx[1])
+            else:
+                adj2Cells[dxn] = None
+        return adj2Cells
 
     def displayMoveDesc(self, moveDesc: str) -> None:
         """

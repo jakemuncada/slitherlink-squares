@@ -59,7 +59,8 @@ class SolverTools:
 
         return (topStatus, rightStatus, botStatus, leftStatus)
 
-    def getStatusCount(self, board: Board, bdrIdxList: Union[list[int], set[int], tuple]) -> tuple[int, int, int]:
+    def getStatusCount(self, board: Board, bdrIdxList: Union[list[int], set[int], tuple]) \
+            -> tuple[int, int, int]:
         """
         Returns the number of `UNSET`, `ACTIVE` and `BLANK` borders
         in that particular order.
@@ -201,7 +202,8 @@ class SolverTools:
                 return True
         return False
 
-    def getDirectionsCellIsPokingAt(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
+    def getDirectionsCellIsPokingAt(self, board: Board, row: int, col: int) \
+            -> list[DiagonalDirection]:
         """
         Returns a list of corner directions where the given cell is poking at.
 
@@ -243,7 +245,8 @@ class SolverTools:
 
         return list(pokeDirs)
 
-    def getDirectionsCellIsBeingExplicitlyPokedFrom(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
+    def getDirectionsCellIsBeingExplicitlyPokedFrom(self, board: Board, row: int, col: int) \
+            -> list[DiagonalDirection]:
         """
         Returns a list of corner directions where the given cell is being explicitly poked from.
 
@@ -261,7 +264,8 @@ class SolverTools:
                 pokeDirs.append(dxn)
         return pokeDirs
 
-    def isCellExplicitlyPoked(self, board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
+    def isCellExplicitlyPoked(self, board: Board, row: int, col: int,
+                              dxn: DiagonalDirection) -> bool:
         """
         Returns true if the cell is being explicitly poked from a specific direction.
 
@@ -277,6 +281,47 @@ class SolverTools:
         arms = board.tools.getArms(row, col, dxn)
         countUnset, countActive, _ = self.getStatusCount(board, arms)
         return countActive == 1 and countUnset == 0
+
+    def is3CellIndirectPokedByPropagation(self, board: Board, currCellIdx: tuple[int, int],
+                                          dxn: DiagonalDirection) -> bool:
+        """
+        Check if the given 3-cell is being indirectly poked by propagation.
+
+        Arguments:
+            board: The board.
+            origCellIdx: The index of the target 3-cell.
+            currCellIdx: The index of the 2-cell currently being checked.
+            dxn: The propagation direction.
+
+        Returns:
+            True if the given 3-cell is being indirectly poked by propagation.
+            False otherwise.
+        """
+        if currCellIdx is None:
+            return False
+
+        currRow, currCol = currCellIdx
+
+        if not board.tools.isValidCellIdx(currRow, currCol):
+            return False
+
+        if board.cells[currRow][currCol] != 2:
+            return False
+
+        arms = board.tools.getArms(currRow, currCol, dxn)
+        if any(board.borders[armIdx] == BorderStatus.ACTIVE for armIdx in arms):
+            return True
+
+        cornerStat1, cornerStat2 = board.getCornerStatus(currRow, currCol, dxn)
+        # INVALID: If both corners are BLANK.
+        assert not (cornerStat1 == BorderStatus.BLANK and cornerStat2 == BorderStatus.BLANK), \
+            f'When propagating for 3-cell indirect poking, both corners should NOT be BLANK: {currCellIdx}'
+
+        if cornerStat1 == BorderStatus.BLANK or cornerStat2 == BorderStatus.BLANK:
+            return True
+
+        nextCellIdx = board.tools.getCellIdxAtAdjCorner(currRow, currCol, dxn)
+        return self.is3CellIndirectPokedByPropagation(board, nextCellIdx, dxn)
 
     def getContinuousUnsetBordersOfCell(self, board: Board, row: int, col: int) -> list[list[int]]:
         """
