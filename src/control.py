@@ -2,9 +2,9 @@
 This module contains the control class for the entire game.
 """
 
+import time
 from typing import Optional
 import pygame as pg
-from pygame.display import update
 from pygame.time import Clock
 
 from .render import Renderer
@@ -50,8 +50,10 @@ class Control:
             if event.type == pg.QUIT:
                 self.done = True
             elif event.type == pg.KEYDOWN:
+                t0 = time.time()
                 self.handleKeyDown(pg.key.get_pressed())
                 self.renderer.draw()
+                print('Time from keypress to draw: {:.3f}'.format(time.time() - t0))
             elif event.type == pg.MOUSEBUTTONDOWN:
                 mouseX, mouseY = pg.mouse.get_pos()
                 closestCell = self.renderer.getClosestCell(Point((mouseX, mouseY)))

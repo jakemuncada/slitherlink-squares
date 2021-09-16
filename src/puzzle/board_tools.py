@@ -32,6 +32,9 @@ class BoardTools:
     def isValidBorderIdx(self, borderIdx: int) -> bool:
         return _isValidBorderIdx(self.rows, self.cols, borderIdx)
 
+    def getCellIdxAtAdjCorner(self, row: int, col: int, dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
+        return _getCellIdxAtAdjCorner(self.rows, self.cols, row, col, dxn)
+
     def getBorderIdx(self, row: int, col: int, direction: CardinalDirection) -> int:
         return _getBorderIdx(self.cols, row, col, direction)
 
@@ -84,6 +87,42 @@ def _numBorders(rows: int, cols: int) -> int:
     with a certain amount of rows and columns.
     """
     return (((cols * 2) + 1) * rows) + cols
+
+@cache
+def _getCellIdxAtAdjCorner(rows: int, cols: int, row: int, col: int, \
+    dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
+    """
+    Get the cell index of the diagonally adjacent cell.
+
+    Arguments:
+        rows: The number of rows in the board.
+        cols: The number of columns in the board.
+        row: The cell's row index.
+        col: The cell's column index.
+        direction: The diagonal direction of the target adjacent cell.
+
+    Returns:
+        The row and column index of the target border.
+        None if the target cell index is not valid.
+    """
+    if dxn == DiagonalDirection.ULEFT:
+        targetRow = row - 1
+        targetCol = col - 1
+    elif dxn == DiagonalDirection.URIGHT:
+        targetRow = row - 1
+        targetCol = col + 1
+    elif dxn == DiagonalDirection.LRIGHT:
+        targetRow = row + 1
+        targetCol = col + 1
+    elif dxn == DiagonalDirection.LLEFT:
+        targetRow = row + 1
+        targetCol = col - 1
+    else:
+        raise ValueError(f'Invalid DiagonalDirection: {dxn}')
+
+    if not _isValidCellIdx(rows, cols, targetRow, targetCol):
+        return None
+    return (targetRow, targetCol)
 
 @cache
 def _getBorderIdx(cols: int, row: int, col: int, direction: CardinalDirection) -> int:
