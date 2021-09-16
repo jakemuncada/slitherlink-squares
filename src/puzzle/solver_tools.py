@@ -33,7 +33,7 @@ class SolverTools:
         return True
 
     def getCellBordersBoolStatus(self, board: Board, row: int, col: int, status: BorderStatus) \
-        -> tuple[bool, bool, bool, bool]:
+            -> tuple[bool, bool, bool, bool]:
         """
         Determine if the status of the four cell borders are equal to the given BorderStatus.
 
@@ -124,7 +124,7 @@ class SolverTools:
             - The two borders are not `BLANK`.
             - The two borders share a common vertex.
             - All the other borders sharing that vertex are `BLANK`.
-        
+
         Arguments:
             board: The board.
             borderIdx1: The index of the first target border.
@@ -155,7 +155,7 @@ class SolverTools:
             if bdrIdx != borderIdx1 and bdrIdx != borderIdx2:
                 if board.borders[bdrIdx] != BorderStatus.BLANK:
                     return False
-        
+
         # If all of the above conditions are true, return True.
         return True
 
@@ -238,11 +238,10 @@ class SolverTools:
         for dxn in DiagonalDirection:
             bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
             if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
-                (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
+                    (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
                 pokeDirs.add(dxn)
-        
-        return list(pokeDirs)
 
+        return list(pokeDirs)
 
     def getDirectionsCellIsBeingExplicitlyPokedFrom(self, board: Board, row: int, col: int) -> list[DiagonalDirection]:
         """
@@ -303,27 +302,27 @@ class SolverTools:
         # TOP-RIGHT-BOT
         if isTopUnset and isRightUnset and isBotUnset:
             if self.isContinuous(board, topBdr, rightBdr) and \
-                self.isContinuous(board, rightBdr, botBdr):
+                    self.isContinuous(board, rightBdr, botBdr):
                 return [[topBdr, rightBdr, botBdr]]
-                
+
         # RIGHT-BOT-LEFT
         if isRightUnset and isBotUnset and isLeftUnset:
             if self.isContinuous(board, rightBdr, botBdr) and \
-                self.isContinuous(board, botBdr, leftBdr):
+                    self.isContinuous(board, botBdr, leftBdr):
                 return [[rightBdr, botBdr, leftBdr]]
 
         # BOT-LEFT-TOP
         if isBotUnset and isLeftUnset and isTopUnset:
             if self.isContinuous(board, botBdr, leftBdr) and \
-                self.isContinuous(board, leftBdr, topBdr):
+                    self.isContinuous(board, leftBdr, topBdr):
                 return [[botBdr, leftBdr, topBdr]]
 
         # LEFT-TOP-RIGHT
         if isLeftUnset and isTopUnset and isRightUnset:
             if self.isContinuous(board, leftBdr, topBdr) and \
-                self.isContinuous(board, topBdr, rightBdr):
+                    self.isContinuous(board, topBdr, rightBdr):
                 return [[leftBdr, topBdr, rightBdr]]
-                
+
         # TOP-RIGHT
         if isTopUnset and isRightUnset:
             if self.isContinuous(board, topBdr, rightBdr):
@@ -343,5 +342,5 @@ class SolverTools:
         if isLeftUnset and isTopUnset:
             if self.isContinuous(board, leftBdr, topBdr):
                 result.append([leftBdr, topBdr])
-        
+
         return result
