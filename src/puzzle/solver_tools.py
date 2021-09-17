@@ -200,43 +200,6 @@ class SolverTools:
 
         return list(pokeDirs)
 
-    def getDirectionsCellIsBeingExplicitlyPokedFrom(self, board: Board, row: int, col: int) \
-            -> list[DiagonalDirection]:
-        """
-        Returns a list of corner directions where the given cell is being explicitly poked from.
-
-        An 'explicit poke' is when exactly one arm from the given direction is `ACTIVE`
-        and the rest are `BLANK`.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-        """
-        pokeDirs: list[DiagonalDirection] = []
-        for dxn in DiagonalDirection:
-            if self.isCellExplicitlyPoked(board, row, col, dxn):
-                pokeDirs.append(dxn)
-        return pokeDirs
-
-    def isCellExplicitlyPoked(self, board: Board, row: int, col: int,
-                              dxn: DiagonalDirection) -> bool:
-        """
-        Returns true if the cell is being explicitly poked from a specific direction.
-
-        An 'explicit poke' is when exactly one arm from the given direction is `ACTIVE`
-        and the rest are `BLANK`.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-            dxn: The specified direction.
-        """
-        arms = board.tools.getArms(row, col, dxn)
-        countUnset, countActive, _ = self.getStatusCount(board, arms)
-        return countActive == 1 and countUnset == 0
-
     def isCellIndirectPokedByPropagation(self, board: Board, currCellIdx: tuple[int, int],
                                          dxn: DiagonalDirection) -> bool:
         """
@@ -263,22 +226,18 @@ class SolverTools:
         if board.cells[currRow][currCol] == 3:
             return True
 
+        cornerBdrs = board.tools.getCornerBorderIndices(currRow, currCol, dxn.opposite())
+        _, countActive, _ = self.getStatusCount(board, cornerBdrs)
+
+        if countActive > 1:
+            raise InvalidBoardException('Checking for INDIRECT poking, but found '
+                                        f'more than one active border: {cornerBdrs}')
+
+        if countActive == 1:
+            return True
+
         if board.cells[currRow][currCol] != 2:
             return False
-
-        arms = board.tools.getArms(currRow, currCol, dxn)
-        if any(board.borders[armIdx] == BorderStatus.ACTIVE for armIdx in arms):
-            return True
-
-        cornerStat1, cornerStat2 = board.getCornerStatus(currRow, currCol, dxn)
-
-        # Board is invalid if both corners are BLANK.
-        if cornerStat1 == BorderStatus.BLANK and cornerStat2 == BorderStatus.BLANK:
-            raise InvalidBoardException(f'When propagating for 3-cell indirect poking, '
-                                        f'both corners should NOT be BLANK: {currCellIdx}')
-
-        if cornerStat1 == BorderStatus.BLANK or cornerStat2 == BorderStatus.BLANK:
-            return True
 
         nextCellIdx = board.tools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
         return self.isCellIndirectPokedByPropagation(board, nextCellIdx, dxn)
