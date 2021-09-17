@@ -237,19 +237,19 @@ class SolverTools:
         countUnset, countActive, _ = self.getStatusCount(board, arms)
         return countActive == 1 and countUnset == 0
 
-    def is3CellIndirectPokedByPropagation(self, board: Board, currCellIdx: tuple[int, int],
-                                          dxn: DiagonalDirection) -> bool:
+    def isCellIndirectPokedByPropagation(self, board: Board, currCellIdx: tuple[int, int],
+                                         dxn: DiagonalDirection) -> bool:
         """
-        Check if the given 3-cell is being indirectly poked by propagation.
+        Check if a cell is being indirectly poked by propagation.
 
         Arguments:
             board: The board.
-            origCellIdx: The index of the target 3-cell.
+            origCellIdx: The index of the target cell.
             currCellIdx: The index of the 2-cell currently being checked.
             dxn: The propagation direction.
 
         Returns:
-            True if the given 3-cell is being indirectly poked by propagation.
+            True if a cell is being indirectly poked by propagation.
             False otherwise.
         """
         if currCellIdx is None:
@@ -278,7 +278,7 @@ class SolverTools:
             return True
 
         nextCellIdx = board.tools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
-        return self.is3CellIndirectPokedByPropagation(board, nextCellIdx, dxn)
+        return self.isCellIndirectPokedByPropagation(board, nextCellIdx, dxn)
 
     def getContinuousUnsetBordersOfCell(self, board: Board, cellInfo: CellInfo) -> list[list[int]]:
         """

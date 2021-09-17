@@ -195,7 +195,7 @@ def _getBorderIdx(cols: int, row: int, col: int, direction: CardinalDirection) -
     elif direction == CardinalDirection.BOT:
         idx += (cols * 2) + 1 + col
     else:
-        raise IndexError()
+        raise ValueError(f'Invalid CardinalDirection.')
     return idx
 
 

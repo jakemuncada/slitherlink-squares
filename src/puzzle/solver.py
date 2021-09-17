@@ -336,7 +336,7 @@ class Solver():
                 bdrStat1, bdrStat2 = self.board.getCornerStatus(row, col, dxn.opposite())
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                     currCellIdx = self.board.tools.getCellIdxAtDiagCorner(row, col, dxn)
-                    if self.tools.is3CellIndirectPokedByPropagation(self.board, currCellIdx, dxn):
+                    if self.tools.isCellIndirectPokedByPropagation(self.board, currCellIdx, dxn):
                         bdrIdx1, bdrIdx2 = self.board.tools.getCornerBorderIndices(row, col, dxn.opposite())
                         self.setBorder(bdrIdx1, BorderStatus.ACTIVE)
                         self.setBorder(bdrIdx2, BorderStatus.ACTIVE)

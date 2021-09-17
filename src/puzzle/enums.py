@@ -89,7 +89,7 @@ class BorderStatus(IntEnum):
             return BorderStatus.ACTIVE
         if i == 2:
             return BorderStatus.BLANK
-        raise AttributeError("Invalid BorderStatus value.")
+        raise ValueError("Invalid BorderStatus value.")
 
     def __str__(self):
         if self == BorderStatus.UNSET:
@@ -98,4 +98,4 @@ class BorderStatus(IntEnum):
             return "ACTIVE"
         if self == BorderStatus.BLANK:
             return "BLANK"
-        raise AssertionError("Invalid Border Status")
+        raise ValueError("Invalid Border Status")
