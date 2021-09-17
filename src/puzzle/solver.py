@@ -53,7 +53,9 @@ class Solver():
                 if not moveFound:
                     moveFound = self.removeLoopMakingMove()
         except InvalidBoardException as e:
+            print('#########################')
             print('The board is invalid:', e)
+            print('#########################')
         else:
             print('No more moves found. Time elapsed: {:.3f} seconds.'.format(time.time() - t0))
 
