@@ -38,7 +38,7 @@ def solveInit(board: Board, reqCells: set[tuple[int, int]]) -> None:
 
         elif reqNum == 3:
             isSuccess = isSuccess and _handleAdjacent3Cells(board, cellIdx, reqCells)
-            isSuccess = isSuccess and _handleDiagonallyAdjacent3Cells(board, cellIdx, reqCells)
+            isSuccess = isSuccess and _handleDiagonal3Cells(board, cellIdx, reqCells)
 
 
 def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
@@ -107,10 +107,12 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
     return isSuccess
 
 
-def _handleDiagonallyAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
-                                    reqCells: set[tuple[int, int]]) -> bool:
+def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int],
+                          reqCells: set[tuple[int, int]]) -> bool:
     """
-    Check and handle the case where the given 3-cell has a diagonally adjacent 3-cell.
+    Check and handle the case where the given 3-cell
+    has a 3-cell diagonal from it. There may be some 2-cells
+    in between the two 3-cells.
 
     Arguments:
         board: The board.
@@ -151,19 +153,41 @@ def _handleDiagonallyAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
     isSuccess = True
 
     # Check UL for a 3-cell
-    if (row - 1, col - 1) in reqCells and board.cells[row - 1][col - 1] == 3:
+    if hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.LRIGHT.opposite(), reqCells):
         isSuccess = isSuccess and _setCorner(DiagonalDirection.LRIGHT)
     # Check UR for a 3-cell
-    if (row - 1, col + 1) in reqCells and board.cells[row - 1][col + 1] == 3:
+    if hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.LLEFT.opposite(), reqCells):
         isSuccess = isSuccess and _setCorner(DiagonalDirection.LLEFT)
     # Check LR for a 3-cell
-    if (row + 1, col + 1) in reqCells and board.cells[row + 1][col + 1] == 3:
+    if hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.ULEFT.opposite(), reqCells):
         isSuccess = isSuccess and _setCorner(DiagonalDirection.ULEFT)
     # Check LL for a 3-cell
-    if (row + 1, col - 1) in reqCells and board.cells[row + 1][col - 1] == 3:
+    if hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.URIGHT.opposite(), reqCells):
         isSuccess = isSuccess and _setCorner(DiagonalDirection.URIGHT)
 
     return isSuccess
+
+
+def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection,
+                     reqCells: set[tuple[int, int]]) -> bool:
+    """
+    Returns true if the given cell is a 3-cell. Will propagate the checking
+    if the given cell is a 2-cell.
+    """
+    if not (row, col) in reqCells:
+        return False
+
+    if board.cells[row][col] == 3:
+        return True
+
+    if board.cells[row][col] != 2:
+        return False
+
+    nextCellIdx = board.tools.getCellIdxAtDiagCorner(row, col, dxn)
+    if nextCellIdx is None:
+        return False
+
+    return hasDiagonal3Cell(board, nextCellIdx[0], nextCellIdx[1], dxn, reqCells)
 
 
 def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> bool:
