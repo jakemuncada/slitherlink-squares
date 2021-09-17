@@ -12,7 +12,7 @@ the result can be cached.
 from functools import cache
 from typing import Optional
 
-from src.puzzle.enums import CardinalDirection, DiagonalDirection
+from src.puzzle.enums import CardinalDirection, DiagonalDirection, OptInt
 
 
 class BoardTools:
@@ -34,7 +34,7 @@ class BoardTools:
         return _isValidBorderIdx(self.rows, self.cols, borderIdx)
 
     def getCellIdxOfAdjCell(self, row: int, col: int, dxn: CardinalDirection) \
-            -> tuple[Optional[int], Optional[int]]:
+            -> tuple[OptInt, OptInt]:
         return _getCellIdxOfAdjCell(self.rows, self.cols, row, col, dxn)
 
     def getCellIdxAtDiagCorner(self, row: int, col: int, dxn: DiagonalDirection) \

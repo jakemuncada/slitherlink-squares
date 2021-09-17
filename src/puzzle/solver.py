@@ -328,7 +328,11 @@ class Solver():
         if foundMove:
             return True
 
-        foundMove = self.checkOuterCellPoking(cellInfo)
+        if self.check3CellRectanglePattern(cellInfo):
+            return True
+
+        if self.checkOuterCellPoking(cellInfo):
+            return True
 
         if not foundMove and reqNum == 3 and cellInfo.bdrUnsetCount > 0:
             # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
@@ -385,6 +389,65 @@ class Solver():
                     foundMove = True
 
         return foundMove
+
+    def check3CellRectanglePattern(self, cellInfo: CellInfo) -> bool:
+        """
+        Check for the special pattern where an empty cell
+        with an active corner is touching a 3-cell, almost making a mini rectangle.
+
+        Arguments:
+            cellInfo: The cell information.
+
+        Returns:
+            True if a move was found. False otherwise.
+        """
+        if cellInfo.reqNum is not None:
+            return False
+
+        if not (cellInfo.bdrActiveCount == 2 and cellInfo.bdrUnsetCount == 2):
+            return False
+
+        row = cellInfo.row
+        col = cellInfo.col
+
+        isTop3Cell = self.tools.isAdjCellReqNumEqualTo(self.board, row, col, CardinalDirection.TOP, 3)
+        isRight3Cell = self.tools.isAdjCellReqNumEqualTo(self.board, row, col, CardinalDirection.RIGHT, 3)
+        isBot3Cell = self.tools.isAdjCellReqNumEqualTo(self.board, row, col, CardinalDirection.BOT, 3)
+        isLeft3Cell = self.tools.isAdjCellReqNumEqualTo(self.board, row, col, CardinalDirection.LEFT, 3)
+
+        if all(self.board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerUL):
+            if isBot3Cell:
+                self.setBorder(cellInfo.rightIdx, BorderStatus.BLANK)
+                return True
+            if isRight3Cell:
+                self.setBorder(cellInfo.botIdx, BorderStatus.BLANK)
+                return True
+
+        elif all(self.board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerUR):
+            if isBot3Cell:
+                self.setBorder(cellInfo.leftIdx, BorderStatus.BLANK)
+                return True
+            if isLeft3Cell:
+                self.setBorder(cellInfo.botIdx, BorderStatus.BLANK)
+                return True
+
+        elif all(self.board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerLR):
+            if isLeft3Cell:
+                self.setBorder(cellInfo.topIdx, BorderStatus.BLANK)
+                return True
+            if isTop3Cell:
+                self.setBorder(cellInfo.leftIdx, BorderStatus.BLANK)
+                return True
+
+        elif all(self.board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerLL):
+            if isRight3Cell:
+                self.setBorder(cellInfo.topIdx, BorderStatus.BLANK)
+                return True
+            if isTop3Cell:
+                self.setBorder(cellInfo.rightIdx, BorderStatus.BLANK)
+                return True
+
+        return False
 
     def checkOuterCellPoking(self, cellInfo: CellInfo) -> bool:
         """

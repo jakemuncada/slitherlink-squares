@@ -6,7 +6,7 @@ from typing import Union
 
 from src.puzzle.board import Board
 from src.puzzle.cell_info import CellInfo
-from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException, OptInt
 
 
 class SolverTools:
@@ -114,6 +114,27 @@ class SolverTools:
             if board.borders[idx] == BorderStatus.BLANK:
                 count += 1
         return count
+
+    def isAdjCellReqNumEqualTo(self, board: Board, row: int, col: int,
+                               dxn: CardinalDirection, query: OptInt) -> bool:
+        """
+        Get the cell index of the adjacent cell and return true
+        if it matches the query.
+
+        Arguments:
+            board: The board.
+            row: The cell's row index.
+            col: The cell's column index.
+            direction: The direction of the target adjacent cell.
+            query: The query.
+
+        Returns:
+            True if the adjacent cell's reqNum matches the query.
+        """
+        adjRow, adjCol = board.tools.getCellIdxOfAdjCell(row, col, dxn)
+        if adjRow is None or adjCol is None:
+            return False
+        return board.cells[adjRow][adjCol] == query
 
     def isContinuous(self, board: Board, borderIdx1: int, borderIdx2: int) -> bool:
         """
