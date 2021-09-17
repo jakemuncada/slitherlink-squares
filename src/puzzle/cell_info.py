@@ -50,6 +50,12 @@ class CellInfo:
         self.activeBorders: set[int] = set()
         self.blankBorders: set[int] = set()
 
+        self.armsTuple: tuple[list[int], list[int], list[int], list[int]] = (None, None, None, None)
+        self.armsUL: list[int] = None
+        self.armsUR: list[int] = None
+        self.armsLR: list[int] = None
+        self.armsLL: list[int] = None
+
     def getBorderIndices(self, board: Board) -> tuple[int, int, int, int]:
         """
         Get the border indices and save it for future use.
@@ -62,6 +68,13 @@ class CellInfo:
         self.rightIdx = self.bdrIndices[1]
         self.botIdx = self.bdrIndices[2]
         self.leftIdx = self.bdrIndices[3]
+
+        self.cornerUL = (self.topIdx, self.leftIdx)
+        self.cornerUR = (self.topIdx, self.rightIdx)
+        self.cornerLR = (self.botIdx, self.rightIdx)
+        self.cornerLL = (self.botIdx, self.leftIdx)
+        self.cornerBdrs = (self.cornerUL, self.cornerUR, self.cornerLR, self.cornerLL)
+
         return self.bdrIndices
 
     def getBorderStats(self, board: Board) -> tuple[BorderStatus, BorderStatus, BorderStatus, BorderStatus]:
@@ -93,5 +106,17 @@ class CellInfo:
             elif stat == BorderStatus.BLANK:
                 self.bdrBlankCount += 1
                 self.blankBorders.add(self.bdrIndices[i])
+
+        return self.bdrStats
+
+    def getArms(self, board: Board) -> tuple[list[int], list[int], list[int], list[int]]:
+        """
+        Get the arms at each corner direction and save it for future use.
+        """
+        self.armsTuple = board.tools.getArmsOfCell(self.row, self.col)
+        self.armsUL = self.armsTuple[0]
+        self.armsUR = self.armsTuple[1]
+        self.armsLR = self.armsTuple[2]
+        self.armsLL = self.armsTuple[3]
 
         return self.bdrStats

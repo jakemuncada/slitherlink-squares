@@ -173,6 +173,8 @@ class Solver():
 
         for row in range(self.board.rows):
             for col in range(self.board.cols):
+                cellInfo = CellInfo.init(self.board, row, col)
+
                 borderIndices = self.board.tools.getCellBorders(row, col)
                 countUnset, _, _ = self.tools.getStatusCount(self.board, borderIndices)
 
@@ -212,7 +214,7 @@ class Solver():
                     if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                         if grp1 is not None and grp2 is not None:
                             if grp1 == grp2:
-                                foundMove = foundMove | self.handleSmoothCorner(row, col, dxn)
+                                foundMove = foundMove | self.handleSmoothCorner(cellInfo, dxn)
                             else:
                                 foundMove = foundMove | self.initiatePoke(row, col, dxn)
 
@@ -376,7 +378,7 @@ class Solver():
                 foundMove = foundMove | self.initiatePoke(row, col, pokeDxn)
 
         if not foundMove:
-            foundMove = self.checkCellForContinuousUnsetBorders(row, col)
+            foundMove = self.checkCellForContinuousUnsetBorders(cellInfo)
 
         return foundMove
 
@@ -403,84 +405,81 @@ class Solver():
 
         return foundMove
 
-    def checkCellForContinuousUnsetBorders(self, row: int, col: int) -> bool:
+    def checkCellForContinuousUnsetBorders(self, cellInfo: CellInfo) -> bool:
         """
         Check the borders of the cell if it has continuous unset borders.
 
         Arguments:
-            row: The row index of the cell.
-            col: The column index of the cell.
+            cellInfo: The cell information.
 
         Returns:
             True if a move was found. False otherwise.
         """
         foundMove = False
-        reqNum = self.board.cells[row][col]
-        cellIdx = (row, col)
+        row = cellInfo.row
+        col = cellInfo.col
 
-        if reqNum is None:
+        if cellInfo.bdrUnsetCount < 2:
             return False
 
-        contUnsetBdrs = self.tools.getContinuousUnsetBordersOfCell(self.board, row, col)
+        if cellInfo.reqNum is None:
+            return False
 
-        if len(contUnsetBdrs) > 0:
-            # If a 1-cell has continuous unset borders, they should be set to BLANK.
-            if reqNum == 1:
-                for bdrSet in contUnsetBdrs:
-                    for bdrIdx in bdrSet:
+        contUnsetBdrs = self.tools.getContinuousUnsetBordersOfCell(self.board, cellInfo)
+
+        if len(contUnsetBdrs) == 0:
+            return False
+
+        # If a 1-cell has continuous unset borders, they should be set to BLANK.
+        if cellInfo.reqNum == 1:
+            for bdrSet in contUnsetBdrs:
+                for bdrIdx in bdrSet:
+                    self.setBorder(bdrIdx, BorderStatus.BLANK)
+                    foundMove = True
+
+        # If a 3-cell has continuous unset borders, they should be set to ACTIVE.
+        if cellInfo.reqNum == 3:
+            for bdrSet in contUnsetBdrs:
+                for bdrIdx in bdrSet:
+                    self.setBorder(bdrIdx, BorderStatus.ACTIVE)
+                    foundMove = True
+
+        # If a 2-cell has continuous unset borders
+        if cellInfo.reqNum == 2:
+            # The board is invalid if the continuous border has a length of 3
+            if len(contUnsetBdrs[0]) != 2:
+                raise InvalidBoardException(f'The 2-cell {row},{col} '
+                                            'must not have continous unset borders '
+                                            'having length of 3 or more.')
+
+            # If the 2-cell has continuos UNSET borders and also has at least one BLANK border,
+            # then the continuous UNSET borders should be activated.
+            if cellInfo.bdrBlankCount > 0:
+                for bdrIdx in contUnsetBdrs[0]:
+                    if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
+                        foundMove = True
+                for bdrIdx in cellInfo.bdrIndices:
+                    if bdrIdx not in contUnsetBdrs[0]:
                         if self.setBorder(bdrIdx, BorderStatus.BLANK):
-                            self.displayMoveDesc(f'Removing continous borders of 1-cell: {cellIdx}')
                             foundMove = True
+            else:
+                topBdr, rightBdr, botBdr, leftBdr = cellInfo.bdrIndices
 
-            # If a 3-cell has continuous unset borders, they should be set to ACTIVE.
-            if reqNum == 3:
-                for bdrSet in contUnsetBdrs:
-                    for bdrIdx in bdrSet:
-                        if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
-                            self.displayMoveDesc(f'Activating continuous borders of 3-cell: {cellIdx}')
-                            foundMove = True
+                # Smooth UL corner
+                if topBdr in contUnsetBdrs[0] and leftBdr in contUnsetBdrs[0]:
+                    smoothDirs = (DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT)
+                # Smooth UR corner
+                elif topBdr in contUnsetBdrs[0] and rightBdr in contUnsetBdrs[0]:
+                    smoothDirs = (DiagonalDirection.URIGHT, DiagonalDirection.LLEFT)
+                # Smooth LR corner
+                elif botBdr in contUnsetBdrs[0] and rightBdr in contUnsetBdrs[0]:
+                    smoothDirs = (DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT)
+                # Smooth LL corner
+                elif botBdr in contUnsetBdrs[0] and leftBdr in contUnsetBdrs[0]:
+                    smoothDirs = (DiagonalDirection.URIGHT, DiagonalDirection.LLEFT)
 
-            # If a 2-cell has continuous unset borders
-            if reqNum == 2:
-                # The board is invalid if the continuous border has a length of 3
-                if len(contUnsetBdrs[0]) != 2:
-                    raise InvalidBoardException(f'The 2-cell {row},{col} '
-                                                'must not have continous unset borders '
-                                                'having length of 3 or more.')
-
-                # If the 2-cell has continuos UNSET borders and also has at least one BLANK border,
-                # then the continuous UNSET borders should be activated.
-                # TODO: Unuse cell borders
-                cellBorders = self.board.tools.getCellBorders(row, col)
-                _, _, countBlank = self.tools.getStatusCount(self.board, cellBorders)
-                if countBlank > 0:
-                    for bdrIdx in contUnsetBdrs[0]:
-                        if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
-                            self.displayMoveDesc(f'Activating continuous borders of 2-cell: {cellIdx}')
-                            foundMove = True
-                    for bdrIdx in self.board.tools.getCellBorders(row, col):
-                        if bdrIdx not in contUnsetBdrs[0]:
-                            if self.setBorder(bdrIdx, BorderStatus.BLANK):
-                                self.displayMoveDesc(f'Removing unset borders of solved 2-cell: {cellIdx}')
-                                foundMove = True
-                else:
-                    topBdr, rightBdr, botBdr, leftBdr = self.board.tools.getCellBorders(row, col)
-
-                    # Smooth UL corner
-                    if topBdr in contUnsetBdrs[0] and leftBdr in contUnsetBdrs[0]:
-                        smoothDirs = (DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT)
-                    # Smooth UR corner
-                    elif topBdr in contUnsetBdrs[0] and rightBdr in contUnsetBdrs[0]:
-                        smoothDirs = (DiagonalDirection.URIGHT, DiagonalDirection.LLEFT)
-                    # Smooth LR corner
-                    elif botBdr in contUnsetBdrs[0] and rightBdr in contUnsetBdrs[0]:
-                        smoothDirs = (DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT)
-                    # Smooth LL corner
-                    elif botBdr in contUnsetBdrs[0] and leftBdr in contUnsetBdrs[0]:
-                        smoothDirs = (DiagonalDirection.URIGHT, DiagonalDirection.LLEFT)
-
-                    for smoothDir in smoothDirs:
-                        foundMove = foundMove | self.handleSmoothCorner(row, col, smoothDir)
+                for smoothDir in smoothDirs:
+                    foundMove = foundMove | self.handleSmoothCorner(cellInfo, smoothDir)
 
         return foundMove
 
@@ -681,7 +680,7 @@ class Solver():
 
         return foundMove
 
-    def handleSmoothCorner(self, row: int, col: int, dxn: DiagonalDirection) -> bool:
+    def handleSmoothCorner(self, cellInfo: CellInfo, dxn: DiagonalDirection) -> bool:
         """
         Handle the situation when a cell's corner is known to be smooth.
 
@@ -689,17 +688,17 @@ class Solver():
         This means that this corner either has two `ACTIVE` borders or two `BLANK` borders.
 
         Arguments:
-            row: The row index of the cell.
-            col: The column index of the cell.
+            cellInfo: The cell information.
             dxn: The direction of the corner.
 
         Returns:
             True if a move was found. False otherwise.
         """
         foundMove = False
-        reqNum = self.board.cells[row][col]
+        row = cellInfo.row
+        col = cellInfo.col
 
-        cornerIdx1, cornerIdx2 = self.board.tools.getCornerBorderIndices(row, col, dxn)
+        cornerIdx1, cornerIdx2 = cellInfo.cornerBdrs[dxn]
         cornerStat1 = self.board.borders[cornerIdx1]
         cornerStat2 = self.board.borders[cornerIdx2]
 
@@ -710,34 +709,28 @@ class Solver():
         # If one border is UNSET and the other is either ACTIVE or BLANK, set it accordingly.
         if cornerStat1 != cornerStat2:
             if cornerStat1 == BorderStatus.UNSET:
-                if self.setBorder(cornerIdx1, cornerStat2):
-                    self.displayMoveDesc(f'Smoothing out corner {dxn}: Cell {row}, {col}')
-                    return True
+                self.setBorder(cornerIdx1, cornerStat2)
+                return True
             elif cornerStat2 == BorderStatus.UNSET:
-                if self.setBorder(cornerIdx2, cornerStat1):
-                    self.displayMoveDesc(f'Smoothing out corner {dxn}: Cell {row}, {col}')
-                    return True
+                self.setBorder(cornerIdx2, cornerStat1)
+                return True
             else:
-                raise AssertionError(f'The cell {row},{col} should have a smooth {dxn} corner, '
-                                     'but its corners are invalid.')
+                raise InvalidBoardException(f'The cell {row},{col} should have a smooth {dxn} corner, '
+                                            'but its corners are invalid.')
 
         # A smooth corner on a 1-cell always means that both borders are BLANK.
-        if reqNum == 1:
+        if cellInfo.reqNum == 1:
             for bdrIdx in (cornerIdx1, cornerIdx2):
                 if self.setBorder(bdrIdx, BorderStatus.BLANK):
-                    self.displayMoveDesc(f'Activating smooth corner {dxn} of 1-cell: Cell {row}, {col}')
                     foundMove = True
-            return foundMove
 
         # A smooth corner on a 3-cell always means that both borders are ACTIVE.
-        elif reqNum == 3:
+        elif cellInfo.reqNum == 3:
             for bdrIdx in (cornerIdx1, cornerIdx2):
                 if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
-                    self.displayMoveDesc(f'Activating smooth corner {dxn} of 3-cell: Cell {row}, {col}')
                     foundMove = True
-            return foundMove
 
-        elif reqNum == 2:
+        elif cellInfo.reqNum == 2:
             # Initiate pokes on the directions where its corners isn't smooth.
             if dxn == DiagonalDirection.ULEFT or dxn == DiagonalDirection.LRIGHT:
                 foundMove = foundMove | self.initiatePoke(row, col, DiagonalDirection.URIGHT)
@@ -752,7 +745,8 @@ class Solver():
             targetCellIdx = self.board.tools.getCellIdxAtDiagCorner(row, col, dxn.opposite())
             if targetCellIdx is not None:
                 targetRow, targetCol = targetCellIdx
-                foundMove = foundMove | self.handleSmoothCorner(targetRow, targetCol, dxn)
+                targetCellInfo = CellInfo.init(self.board, targetRow, targetCol)
+                foundMove = foundMove | self.handleSmoothCorner(targetCellInfo, dxn)
 
         return foundMove
 

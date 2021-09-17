@@ -10,7 +10,7 @@ from .puzzle.puzzles import puzzles
 def main():
     """Main function."""
 
-    pz = puzzles[2]
+    pz = puzzles[1]
     rows = pz["rows"]
     cols = pz["cols"]
     data = re.sub(r"\s+", "", pz["data"])

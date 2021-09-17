@@ -6,7 +6,7 @@ from typing import Union
 
 from src.puzzle.board import Board
 from src.puzzle.cell_info import CellInfo
-from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException, OptInt
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException
 
 
 class SolverTools:
@@ -91,9 +91,8 @@ class SolverTools:
         """
         count = 0
         for idx in bdrIdxList:
-            if board.tools.isValidBorderIdx(idx):
-                if board.borders[idx] == BorderStatus.UNSET:
-                    count += 1
+            if board.borders[idx] == BorderStatus.UNSET:
+                count += 1
         return count
 
     def countActive(self, board: Board, bdrIdxList: list[int]) -> int:
@@ -102,9 +101,8 @@ class SolverTools:
         """
         count = 0
         for idx in bdrIdxList:
-            if board.tools.isValidBorderIdx(idx):
-                if board.borders[idx] == BorderStatus.ACTIVE:
-                    count += 1
+            if board.borders[idx] == BorderStatus.ACTIVE:
+                count += 1
         return count
 
     def countBlank(self, board: Board, bdrIdxList: list[int]) -> int:
@@ -113,9 +111,8 @@ class SolverTools:
         """
         count = 0
         for idx in bdrIdxList:
-            if board.tools.isValidBorderIdx(idx):
-                if board.borders[idx] == BorderStatus.BLANK:
-                    count += 1
+            if board.borders[idx] == BorderStatus.BLANK:
+                count += 1
         return count
 
     def isContinuous(self, board: Board, borderIdx1: int, borderIdx2: int) -> bool:
@@ -283,26 +280,25 @@ class SolverTools:
         nextCellIdx = board.tools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
         return self.is3CellIndirectPokedByPropagation(board, nextCellIdx, dxn)
 
-    def getContinuousUnsetBordersOfCell(self, board: Board, row: int, col: int) -> list[list[int]]:
+    def getContinuousUnsetBordersOfCell(self, board: Board, cellInfo: CellInfo) -> list[list[int]]:
         """
         Returns the `UNSET` borders of a cell who are continuous with each other.
 
         Arguments:
             board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
+            cellInfo: The cell information.
         """
         result: list[list[int]] = []
 
-        topBdr = board.tools.getBorderIdx(row, col, CardinalDirection.TOP)
-        rightBdr = board.tools.getBorderIdx(row, col, CardinalDirection.RIGHT)
-        botBdr = board.tools.getBorderIdx(row, col, CardinalDirection.BOT)
-        leftBdr = board.tools.getBorderIdx(row, col, CardinalDirection.LEFT)
+        if cellInfo.bdrUnsetCount < 2:
+            return []
 
-        isTopUnset = board.borders[topBdr] == BorderStatus.UNSET
-        isRightUnset = board.borders[rightBdr] == BorderStatus.UNSET
-        isBotUnset = board.borders[botBdr] == BorderStatus.UNSET
-        isLeftUnset = board.borders[leftBdr] == BorderStatus.UNSET
+        topBdr, rightBdr, botBdr, leftBdr = cellInfo.bdrIndices
+
+        isTopUnset = cellInfo.topBdr == BorderStatus.UNSET
+        isRightUnset = cellInfo.rightBdr == BorderStatus.UNSET
+        isBotUnset = cellInfo.botBdr == BorderStatus.UNSET
+        isLeftUnset = cellInfo.leftBdr == BorderStatus.UNSET
 
         # TOP-RIGHT-BOT
         if isTopUnset and isRightUnset and isBotUnset:
