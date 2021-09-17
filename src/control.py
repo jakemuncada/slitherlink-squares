@@ -75,7 +75,7 @@ class Control:
         if keys[pg.K_s]:
             self.solver.solveBoardFromScratch(self.renderer.draw)
         elif keys[pg.K_x]:
-            self.solver.solveCurrentBoard()
+            self.solver.solveCurrentBoard(self.renderer.draw)
         elif keys[pg.K_r]:
             self.board.reset()
             self.solver.initialized = False

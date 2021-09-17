@@ -4,7 +4,7 @@ Solver for Slitherlink-Squares.
 
 import time
 from functools import cache
-from typing import Optional
+from typing import Optional, Callable
 
 from src.puzzle.solver_init import solveInit
 from src.puzzle.solver_tools import SolverTools
@@ -82,7 +82,7 @@ class Solver():
         self.prioCells.extend(medPrio)
         self.prioCells.extend(lowPrio)
 
-    def solveBoardFromScratch(self, updateUI) -> None:
+    def solveBoardFromScratch(self, updateUI: Callable) -> None:
         """
         Solve board from scratch.
         """
@@ -92,7 +92,9 @@ class Solver():
         solveInit(self.board)
         self.initialized = True
 
-        isValid, timeElapsed = self._solve(self.board)
+        updateUI()
+
+        isValid, timeElapsed = self._solve(self.board, updateUI)
         print('Initial solve: {:.3f} seconds'.format(timeElapsed))
 
         assert isValid, '##### ERROR: The first solve unexpectedly ' \
@@ -116,7 +118,7 @@ class Solver():
                     cloneBoard = self.board.clone()
                     self.setBorder(cloneBoard, guessBdrIdx, guessStatus)
 
-                    isValid, timeElapsed = self._solve(cloneBoard)
+                    isValid, timeElapsed = self._solve(cloneBoard, updateUI)
                     # print('Guessed by setting border {} to {}: {:.3f} seconds'.format(
                     #     guessBdrIdx, guessStatus, timeElapsed))
 
@@ -129,7 +131,7 @@ class Solver():
 
                 self.currGuessIdx += 1
 
-            isValid, timeElapsed = self._solve(self.board)
+            isValid, timeElapsed = self._solve(self.board, updateUI)
             print('Solve: {:.3f} seconds'.format(timeElapsed))
 
             if self.board.isComplete:
@@ -137,23 +139,25 @@ class Solver():
 
         print('Solving the board from scratch took {:.3f} seconds.'.format(time.time() - t0))
 
-    def solveCurrentBoard(self) -> None:
+    def solveCurrentBoard(self, updateUI: Callable) -> None:
         """
         Solve the board starting from its current state.
         """
         if self.initialized:
             solveInit(self.board)
             self.initialized = True
+            updateUI()
 
-        isValid, timeElapsed = self._solve(self.board)
+        isValid, timeElapsed = self._solve(self.board, updateUI)
         print('Solve: {:.3f} seconds [{}]'.format(timeElapsed, isValid))
 
-    def _solve(self, board: Board) -> tuple[bool, float]:
+    def _solve(self, board: Board, updateUI: Callable = None) -> tuple[bool, float]:
         """
         Try to solve the given board. Possibly might not completely solve the board.
 
         Arguments:
             board: The board to solve.
+            updateUI: The function to render the board onto the screen.
 
         Returns:
             A tuple. The first value is the board validity after solving.
@@ -175,7 +179,10 @@ class Solver():
                 if not moveFound:
                     moveFound = self.removeLoopMakingMove(board)
 
-        except InvalidBoardException as e:
+                if updateUI:
+                    updateUI()
+
+        except InvalidBoardException:
             return (False, time.time() - t0)
 
         return (True, time.time() - t0)
