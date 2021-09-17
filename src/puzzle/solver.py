@@ -8,7 +8,7 @@ from typing import Optional
 
 from src.puzzle.solver_init import solveInit
 from src.puzzle.solver_tools import SolverTools
-from src.puzzle.enums import BorderStatus, CardinalDirection, CellBdrs, DiagonalDirection
+from src.puzzle.enums import BorderStatus, CardinalDirection, CellBdrs, DiagonalDirection, InvalidBoardException
 from src.puzzle.board import Board
 
 
@@ -50,17 +50,20 @@ class Solver():
         """
         t0 = time.time()
 
-        solveInit(self.board, self.reqCells, self.cellBorders)
-        moveFound = True
-        while moveFound:
-            moveFound = self.solveObvious()
-            if not moveFound:
-                self.updateCellGroups()
-                moveFound = self.checkCellGroupClues()
-            if not moveFound:
-                moveFound = self.removeLoopMakingMove()
-
-        print('No more moves found. Time elapsed: {:.3f} seconds.'.format(time.time() - t0))
+        try:
+            solveInit(self.board, self.reqCells, self.cellBorders)
+            moveFound = True
+            while moveFound:
+                moveFound = self.solveObvious()
+                if not moveFound:
+                    self.updateCellGroups()
+                    moveFound = self.checkCellGroupClues()
+                if not moveFound:
+                    moveFound = self.removeLoopMakingMove()
+        except InvalidBoardException:
+            print('The board is invalid.')
+        else:
+            print('No more moves found. Time elapsed: {:.3f} seconds.'.format(time.time() - t0))
 
     def _solve(self):
         """
@@ -86,9 +89,11 @@ class Solver():
             True if the border was set to the new status.
             False if the border was already in that status.
         """
-        if self.board.borders[borderIdx] != newStatus:
+        if self.board.borders[borderIdx] == BorderStatus.UNSET:
             self.board.setBorderStatus(borderIdx, newStatus)
             return True
+        elif self.board.borders[borderIdx] != newStatus:
+            raise InvalidBoardException
         return False
 
     def solveObvious(self) -> bool:
@@ -417,10 +422,11 @@ class Solver():
 
             # If a 2-cell has continuous unset borders
             if reqNum == 2:
-
-                # INVALID: If the continuous border has a length of 3
-                assert len(contUnsetBdrs[0]) == 2, f'The 2-cell {row},{col} ' \
-                    'must not have continous unset borders having length of 3 or more.'
+                # The board is invalid if the continuous border has a length of 3
+                if len(contUnsetBdrs[0]) != 2:
+                    raise InvalidBoardException(f'The 2-cell {row},{col} '
+                                                'must not have continous unset borders '
+                                                'having length of 3 or more.')
 
                 # If the 2-cell has continuos UNSET borders and also has at least one BLANK border,
                 # then the continuous UNSET borders should be activated.
@@ -523,7 +529,6 @@ class Solver():
             assert len(arms) < 2, f'Did not expect outer cell to have more than 1 arm. ' \
                 f'Cell ({origRow}, {origCol}) has {len(arms)} arms at the {dxn} corner.'
             for bdrIdx in arms:
-                # INVALID: If this arm right here is BLANK.
                 if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
                     self.displayMoveDesc(
                         f'Activating an outer board border because of a poke: Cell {origRow}, {origCol}')
@@ -552,11 +557,11 @@ class Solver():
         bdrStat2 = self.board.borders[bdrIdx2]
         if bdrStat1 == BorderStatus.ACTIVE:
             if self.setBorder(bdrIdx2, BorderStatus.BLANK):
-                self.displayMoveDesc(f'Removing other border because cell is poked: Cell {row}, {col}')
+                self.displayMoveDesc(f'Removing other border because cell is poked: Cell {row},{col}')
                 foundMove = True
         elif bdrStat2 == BorderStatus.ACTIVE:
             if self.setBorder(bdrIdx1, BorderStatus.BLANK):
-                self.displayMoveDesc(f'Removing other border because cell is poked: Cell {row}, {col}')
+                self.displayMoveDesc(f'Removing other border because cell is poked: Cell {row},{col}')
                 foundMove = True
 
         if foundMove:
@@ -566,10 +571,11 @@ class Solver():
         # so we should remove the borders on the opposite corner.
         if reqNum == 1:
             blankBorders = self.board.tools.getCornerBorderIndices(row, col, dxn.opposite())
-            # INVALID: If a the border opposite from the poke direction is already ACTIVE.
+
+            # The board is invalid if the border opposite from the poke direction is already ACTIVE.
             for bdrIdx in blankBorders:
                 if self.setBorder(bdrIdx, BorderStatus.BLANK):
-                    self.displayMoveDesc(f'Removing borders away from poke direction of 1-cell: Cell {row}, {col}')
+                    self.displayMoveDesc(f'Removing borders away from poke direction of 1-cell: Cell {row},{col}')
                     foundMove = True
 
         # If a 2-cell is poked, poke the cell opposite from the original poke direction.
@@ -580,12 +586,12 @@ class Solver():
             if self.board.borders[bdrIdx1] == BorderStatus.BLANK:
                 if self.setBorder(bdrIdx2, BorderStatus.ACTIVE):
                     self.displayMoveDesc(
-                        f'Activating remaining border on opposite side of poked 2-cell: Cell {row}, {col}')
+                        f'Activating remaining border on opposite side of poked 2-cell: Cell {row},{col}')
                     foundMove = True
             elif self.board.borders[bdrIdx2] == BorderStatus.BLANK:
                 if self.setBorder(bdrIdx1, BorderStatus.ACTIVE):
                     self.displayMoveDesc(
-                        f'Activating remaining border on opposite side of poked 2-cell: Cell {row}, {col}')
+                        f'Activating remaining border on opposite side of poked 2-cell: Cell {row},{col}')
                     foundMove = True
             # Propagate the poke to the next cell
             foundMove = foundMove | self.initiatePoke(row, col, dxn.opposite())
@@ -596,19 +602,23 @@ class Solver():
             for bdrIdx in borders:
                 if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
                     self.displayMoveDesc(
-                        f'Activating remaining border on opposite side of poked 2-cell: Cell {row}, {col}')
+                        f'Activating remaining border on opposite side of poked 2-cell: Cell {row},{col}')
                     foundMove = True
             # Check if there is an active arm from the poke direction.
             # If there is, remove the other arms from that corner.
             arms = self.board.tools.getArms(row, col, dxn)
             armsStatuses = [self.board.borders[armIdx] for armIdx in arms]
             countUnset, countActive, _ = self.tools.getStatusCount(self.board, armsStatuses)
-            # INVALID: If the number of active arms is more than 1
+
+            # The board is invalid if the number of active arms is more than 1
+            if countActive > 1:
+                raise InvalidBoardException(f'A poked 3-cell cannot have more than two active arms: {row},{col}')
+
             if countActive == 1 and countUnset > 0:
                 for bdrIdx in arms:
                     if self.board.borders[bdrIdx] == BorderStatus.UNSET:
                         if self.setBorder(bdrIdx, BorderStatus.BLANK):
-                            self.displayMoveDesc(f'Removing unset arm of 3-cell where poke occurred: Cell {row}, {col}')
+                            self.displayMoveDesc(f'Removing unset arm of 3-cell where poke occurred: Cell {row},{col}')
                             foundMove = True
 
         if not foundMove:
@@ -616,11 +626,11 @@ class Solver():
             bdrIdx1, bdrIdx2 = self.board.tools.getCornerBorderIndices(row, col, dxn)
             if self.board.borders[bdrIdx1] == BorderStatus.BLANK:
                 if self.setBorder(bdrIdx2, BorderStatus.ACTIVE):
-                    # self.displayMoveDesc(f'Activating remaining border on opposite side of poked cell: Cell {row}, {col}')
+                    # self.displayMoveDesc(f'Activating remaining border on opposite side of poked cell: Cell {row},{col}')
                     foundMove = True
             elif self.board.borders[bdrIdx2] == BorderStatus.BLANK:
                 if self.setBorder(bdrIdx1, BorderStatus.ACTIVE):
-                    # self.displayMoveDesc(f'Activating remaining border on opposite side of poked cell: Cell {row}, {col}')
+                    # self.displayMoveDesc(f'Activating remaining border on opposite side of poked cell: Cell {row},{col}')
                     foundMove = True
 
         if not foundMove:

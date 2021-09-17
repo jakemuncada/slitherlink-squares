@@ -5,7 +5,7 @@ This module contains functions for solving the board.
 from typing import Optional, Union
 
 from .board import Board
-from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, OptInt
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException, OptInt
 
 
 class SolverTools:
@@ -313,9 +313,11 @@ class SolverTools:
             return True
 
         cornerStat1, cornerStat2 = board.getCornerStatus(currRow, currCol, dxn)
-        # INVALID: If both corners are BLANK.
-        assert not (cornerStat1 == BorderStatus.BLANK and cornerStat2 == BorderStatus.BLANK), \
-            f'When propagating for 3-cell indirect poking, both corners should NOT be BLANK: {currCellIdx}'
+
+        # Board is invalid if both corners are BLANK.
+        if cornerStat1 == BorderStatus.BLANK and cornerStat2 == BorderStatus.BLANK:
+            raise InvalidBoardException(f'When propagating for 3-cell indirect poking, '
+                                        f'both corners should NOT be BLANK: {currCellIdx}')
 
         if cornerStat1 == BorderStatus.BLANK or cornerStat2 == BorderStatus.BLANK:
             return True

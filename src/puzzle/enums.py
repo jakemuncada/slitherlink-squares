@@ -11,6 +11,10 @@ Coord = Tuple[int, int]
 CellBdrs = list[list[tuple[int, int, int, int]]]
 
 
+class InvalidBoardException(Exception):
+    pass
+
+
 class CardinalDirection(IntEnum):
     """
     The four cardinal directions: `TOP`, `RIGHT`, `BOT`, and `LEFT`.
