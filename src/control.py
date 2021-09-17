@@ -73,9 +73,10 @@ class Control:
             keys: The keys that were pressed.
         """
         if keys[pg.K_s]:
-            self.solver.solveBoard()
+            self.solver.solveBoardFromScratch()
         elif keys[pg.K_r]:
-            self.resetBoard()
+            self.board.reset()
+            self.solver.initialized = False
         elif keys[pg.K_o]:
             self.renderer.toggleCellGroupOverlay()
 
@@ -100,13 +101,3 @@ class Control:
         """
         print(f'Clicked cell {cellIdx}')
         self.renderer.draw()
-
-    def resetBoard(self) -> None:
-        """
-        Reset all borders to `UNSET` status.
-        """
-        for borderIdx in range(len(self.board.borders)):
-            self.board.setBorderToUnset(borderIdx)
-        for row in range(self.board.rows):
-            for col in range(self.board.cols):
-                self.board.cellGroups[row][col] = None

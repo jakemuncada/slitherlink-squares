@@ -8,41 +8,36 @@ from src.puzzle.board import Board
 from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection
 
 
-def solveInit(board: Board, reqCells: set[tuple[int, int]]) -> None:
+def solveInit(board: Board) -> None:
     """
     Fill in the initial solved-state of the board based on the cell numbers.
 
     Arguments:
         board: The board.
-        reqCells: The set of cell indices that contain a required border number.
-
-    Returns:
-        True if all the borders were filled-in successfully.
-        False if the given board configuration is invalid.
     """
-    isSuccess = True
+    reqCells: set[tuple[int, int]] = set()
+    for row in range(board.rows):
+        for col in range(board.cols):
+            if board.cells[row][col] is not None:
+                reqCells.add((row, col))
 
-    for cellIdx in reqCells:
-        row = cellIdx[0]
-        col = cellIdx[1]
-        reqNum = board.cells[row][col]
+    for row in range(board.rows):
+        for col in range(board.cols):
 
-        if not isSuccess:
-            return False
+            reqNum = board.cells[row][col]
+            cellBorders = board.tools.getCellBorders(row, col)
 
-        cellBorders = board.tools.getCellBorders(row, col)
+            if reqNum == 0:
+                for bdrIdx in cellBorders:
+                    _setBorder(board, bdrIdx, BorderStatus.BLANK)
 
-        if reqNum == 0:
-            for bdrIdx in cellBorders:
-                isSuccess = isSuccess and _setBorder(board, bdrIdx, BorderStatus.BLANK)
-
-        elif reqNum == 3:
-            isSuccess = isSuccess and _handleAdjacent3Cells(board, cellIdx, reqCells)
-            isSuccess = isSuccess and _handleDiagonal3Cells(board, cellIdx, reqCells)
+            elif reqNum == 3:
+                _handleAdjacent3Cells(board, (row, col), reqCells)
+                _handleDiagonal3Cells(board, (row, col), reqCells)
 
 
 def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
-                          reqCells: set[tuple[int, int]]) -> bool:
+                          reqCells: set[tuple[int, int]]) -> None:
     """
     Check and handle the case where the given 3-cell has an adjacent 3-cell.
 
@@ -50,17 +45,13 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
         board: The board.
         cellIdx: The cell index of the 3-cell.
         reqCells: The set of cell indices that contain a required border number.
-
-    Returns:
-        True if all the borders were filled-in successfully.
-        False if the given board configuration is invalid.
     """
     row = cellIdx[0]
     col = cellIdx[1]
     cellBorders = board.tools.getCellBorders(row, col)
     topB, rightB, botB, leftB = cellBorders
 
-    def _setAdj3CellBorders(dxn: CardinalDirection, other3CellIdx: tuple[int, int]) -> bool:
+    def _setAdj3CellBorders(dxn: CardinalDirection, other3CellIdx: tuple[int, int]) -> None:
         other3CellRow = other3CellIdx[0]
         other3CellCol = other3CellIdx[1]
         otherCellBorders = board.tools.getCellBorders(other3CellRow, other3CellCol)
@@ -83,32 +74,27 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
             conn = board.tools.getConnectedBordersList(leftB)
             blankBorders = [bdr for bdr in conn if bdr not in bdrFilter]
 
-        _success = True
         for bdr in activeBorders:
-            _success = _success and _setBorder(board, bdr, BorderStatus.ACTIVE)
+            _setBorder(board, bdr, BorderStatus.ACTIVE)
         for bdr in blankBorders:
-            _success = _success and _setBorder(board, bdr, BorderStatus.BLANK)
-        return _success
+            _setBorder(board, bdr, BorderStatus.BLANK)
 
-    isSuccess = True
     # Check TOP for a 3-cell
     if (row - 1, col) in reqCells and board.cells[row - 1][col] == 3:
-        isSuccess = isSuccess and _setAdj3CellBorders(CardinalDirection.TOP, (row - 1, col))
+        _setAdj3CellBorders(CardinalDirection.TOP, (row - 1, col))
     # Check RIGHT for a 3-cell
     if (row, col + 1) in reqCells and board.cells[row][col + 1] == 3:
-        isSuccess = isSuccess and _setAdj3CellBorders(CardinalDirection.RIGHT, (row, col + 1))
+        _setAdj3CellBorders(CardinalDirection.RIGHT, (row, col + 1))
     # Check BOT for a 3-cell
     if (row + 1, col) in reqCells and board.cells[row + 1][col] == 3:
-        isSuccess = isSuccess and _setAdj3CellBorders(CardinalDirection.BOT, (row + 1, col))
+        _setAdj3CellBorders(CardinalDirection.BOT, (row + 1, col))
     # Check LEFT for a 3-cell
     if (row, col - 1) in reqCells and board.cells[row][col - 1] == 3:
-        isSuccess = isSuccess and _setAdj3CellBorders(CardinalDirection.LEFT, (row, col - 1))
-
-    return isSuccess
+        _setAdj3CellBorders(CardinalDirection.LEFT, (row, col - 1))
 
 
 def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int],
-                          reqCells: set[tuple[int, int]]) -> bool:
+                          reqCells: set[tuple[int, int]]) -> None:
     """
     Check and handle the case where the given 3-cell
     has a 3-cell diagonal from it. There may be some 2-cells
@@ -118,16 +104,12 @@ def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int],
         board: The board.
         cellIdx: The cell index of the 3-cell.
         reqCells: The set of cell indices that contain a required border number.
-
-    Returns:
-        True if all the borders were filled-in successfully.
-        False if the given board configuration is invalid.
     """
     row = cellIdx[0]
     col = cellIdx[1]
     topB, rightB, botB, leftB = board.tools.getCellBorders(row, col)
 
-    def _setCorner(dxn: DiagonalDirection) -> bool:
+    def _setCorner(dxn: DiagonalDirection) -> None:
         armsUL, armsUR, armsLR, armsLL = board.tools.getArmsOfCell(row, col)
 
         if dxn == DiagonalDirection.ULEFT:
@@ -143,29 +125,23 @@ def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int],
             activeBorders = (botB, leftB)
             blankBorders = armsLL
 
-        _success = True
         for bdr in activeBorders:
-            _success = _success and _setBorder(board, bdr, BorderStatus.ACTIVE)
+            _setBorder(board, bdr, BorderStatus.ACTIVE)
         for bdr in blankBorders:
-            _success = _success and _setBorder(board, bdr, BorderStatus.BLANK)
-        return _success
-
-    isSuccess = True
+            _setBorder(board, bdr, BorderStatus.BLANK)
 
     # Check UL for a 3-cell
     if hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.LRIGHT.opposite(), reqCells):
-        isSuccess = isSuccess and _setCorner(DiagonalDirection.LRIGHT)
+        _setCorner(DiagonalDirection.LRIGHT)
     # Check UR for a 3-cell
     if hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.LLEFT.opposite(), reqCells):
-        isSuccess = isSuccess and _setCorner(DiagonalDirection.LLEFT)
+        _setCorner(DiagonalDirection.LLEFT)
     # Check LR for a 3-cell
     if hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.ULEFT.opposite(), reqCells):
-        isSuccess = isSuccess and _setCorner(DiagonalDirection.ULEFT)
+        _setCorner(DiagonalDirection.ULEFT)
     # Check LL for a 3-cell
     if hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.URIGHT.opposite(), reqCells):
-        isSuccess = isSuccess and _setCorner(DiagonalDirection.URIGHT)
-
-    return isSuccess
+        _setCorner(DiagonalDirection.URIGHT)
 
 
 def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection,
@@ -190,7 +166,7 @@ def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection,
     return hasDiagonal3Cell(board, nextCellIdx[0], nextCellIdx[1], dxn, reqCells)
 
 
-def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> bool:
+def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> None:
     """
     Set the border to a new status.
 
@@ -207,6 +183,3 @@ def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> bool:
         pass
     elif board.borders[borderIdx] == BorderStatus.UNSET:
         board.setBorderStatus(borderIdx, newStatus)
-    else:
-        return False
-    return True

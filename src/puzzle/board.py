@@ -55,6 +55,16 @@ class Board:
             [BorderStatus.UNSET for _ in range((((cols * 2) + 1) * rows) + cols)]
         self.cellGroups = [[None for _ in range(cols)] for _ in range(rows)]
 
+    @property
+    def isFinished(self) -> bool:
+        """
+        True if there are no more `UNSET` borders. False otherwise.
+        """
+        for bdr in self.borders:
+            if bdr == BorderStatus.UNSET:
+                return False
+        return True
+
     @classmethod
     def fromString(cls, rows: int, cols: int, cellDataString: str):
         """
@@ -83,6 +93,17 @@ class Board:
             cells.append(rowArr)
 
         return cls(rows, cols, cells)
+
+    def reset(self) -> None:
+        """
+        Reset the board to its initial state.
+        """
+        for borderIdx in range(len(self.borders)):
+            self.borders[borderIdx] = BorderStatus.UNSET
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                self.cellGroups[row][col] = None
 
     def clone(self):
         """
