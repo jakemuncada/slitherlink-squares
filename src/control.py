@@ -73,7 +73,9 @@ class Control:
             keys: The keys that were pressed.
         """
         if keys[pg.K_s]:
-            self.solver.solveBoardFromScratch()
+            self.solver.solveBoardFromScratch(self.renderer.draw)
+        elif keys[pg.K_x]:
+            self.solver.solveCurrentBoard()
         elif keys[pg.K_r]:
             self.board.reset()
             self.solver.initialized = False

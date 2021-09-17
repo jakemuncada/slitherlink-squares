@@ -37,26 +37,29 @@ class Board:
             borders: A two-dimensional array containing the status of each border.
         """
         if rows <= 0 or cols <= 0:
-            raise ValueError("Row or column must be a positive number.")
+            raise ValueError('Row or column must be a positive number.')
 
         if cells is not None and (len(cells) != rows or len(cells[0]) != cols):
-            raise ValueError("The given cell data does not match "
-                             "the number of rows and columns of the board.")
+            raise ValueError('The given cell data does not match '
+                             'the number of rows and columns of the board.')
 
-        if borders is not None and (len(borders) != rows + 1 or len(borders[0]) != cols + 1):
-            raise ValueError("The given border data has invalid number of rows and columns.")
+        if borders is not None and (len(borders) != (((cols * 2) + 1) * rows) + cols):
+            raise ValueError(f'The given border data has invalid length ({len(borders)}).')
 
         self.rows = rows
         self.cols = cols
         self.tools = BoardTools(rows, cols)
+
         self.cells = cells if cells is not None else \
             [[None for _ in range(cols)] for _ in range(rows)]
+
         self.borders = borders if borders is not None else \
             [BorderStatus.UNSET for _ in range((((cols * 2) + 1) * rows) + cols)]
+
         self.cellGroups = [[None for _ in range(cols)] for _ in range(rows)]
 
     @property
-    def isFinished(self) -> bool:
+    def isComplete(self) -> bool:
         """
         True if there are no more `UNSET` borders. False otherwise.
         """
@@ -110,7 +113,7 @@ class Board:
         Returns a deep copy of the Board.
         """
         cellsCopy = deepcopy(self.cells)
-        bordersCopy = deepcopy(self.borders)
+        bordersCopy = [bdrStatus for bdrStatus in self.borders]
         return Board(self.rows, self.cols, cellsCopy, bordersCopy)
 
     ##################################################

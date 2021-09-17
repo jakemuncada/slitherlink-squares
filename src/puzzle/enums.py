@@ -75,6 +75,16 @@ class BorderStatus(IntEnum):
     ACTIVE = 1
     BLANK = 2
 
+    def opposite(self):
+        """
+        Get the opposite border status.
+        """
+        if self == BorderStatus.ACTIVE:
+            return BorderStatus.BLANK
+        elif self == BorderStatus.BLANK:
+            return BorderStatus.ACTIVE
+        raise ValueError('Only ACTIVE and BLANK statuses have an opposite.')
+
     @classmethod
     def fromChar(cls, c):
         """Returns the equivalent BorderStatus of a given character."""

@@ -82,7 +82,7 @@ class Solver():
         self.prioCells.extend(medPrio)
         self.prioCells.extend(lowPrio)
 
-    def solveBoardFromScratch(self) -> None:
+    def solveBoardFromScratch(self, updateUI) -> None:
         """
         Solve board from scratch.
         """
@@ -93,18 +93,47 @@ class Solver():
         self.initialized = True
 
         isValid, timeElapsed = self._solve(self.board)
-        print('Solve: {:.3f} seconds'.format(timeElapsed))
+        print('Initial solve: {:.3f} seconds'.format(timeElapsed))
 
         assert isValid, '##### ERROR: The first solve unexpectedly ' \
             'resulted in an invalid board. #####'
 
         self.currGuessIdx = 0
 
+        # Continue guessing until the board is completed.
         while True:
-            guessBdrIdx, guessStatus = self.guesses[self.currGuessIdx]
-            if self.board.borders[guessBdrIdx] == BorderStatus.UNSET:
-                pass
-            break
+            t1 = time.time()
+
+            updateUI()
+
+            if self.currGuessIdx >= len(self.guesses):
+                self.currGuessIdx = 0
+
+            while self.currGuessIdx < len(self.guesses):
+                guessBdrIdx, guessStatus = self.guesses[self.currGuessIdx]
+
+                if self.board.borders[guessBdrIdx] == BorderStatus.UNSET:
+                    cloneBoard = self.board.clone()
+                    self.setBorder(cloneBoard, guessBdrIdx, guessStatus)
+
+                    isValid, timeElapsed = self._solve(cloneBoard)
+                    # print('Guessed by setting border {} to {}: {:.3f} seconds'.format(
+                    #     guessBdrIdx, guessStatus, timeElapsed))
+
+                    # If the guess was invalid, then the opposite move should be valid.
+                    if not isValid:
+                        print('Correct guess: border {} to {} [{:.3f} seconds]'.format(
+                            guessBdrIdx, guessStatus.opposite(), time.time() - t1))
+                        self.setBorder(self.board, guessBdrIdx, guessStatus.opposite())
+                        break
+
+                self.currGuessIdx += 1
+
+            isValid, timeElapsed = self._solve(self.board)
+            print('Solve: {:.3f} seconds'.format(timeElapsed))
+
+            if self.board.isComplete:
+                break
 
         print('Solving the board from scratch took {:.3f} seconds.'.format(time.time() - t0))
 
@@ -116,7 +145,8 @@ class Solver():
             solveInit(self.board)
             self.initialized = True
 
-        raise NotImplementedError
+        isValid, timeElapsed = self._solve(self.board)
+        print('Solve: {:.3f} seconds [{}]'.format(timeElapsed, isValid))
 
     def _solve(self, board: Board) -> tuple[bool, float]:
         """
@@ -146,9 +176,6 @@ class Solver():
                     moveFound = self.removeLoopMakingMove(board)
 
         except InvalidBoardException as e:
-            print('#########################')
-            print('The board is invalid:', e)
-            print('#########################')
             return (False, time.time() - t0)
 
         return (True, time.time() - t0)
@@ -363,8 +390,6 @@ class Solver():
             if group1 is not None and group2 is not None and group1 == group2:
                 if self.setBorder(board, bdrIdx, BorderStatus.BLANK):
                     return True
-
-        print('Loop-making borders: None found in {:.3f} seconds'.format(time.time() - t0))
 
         return moveFound
 
