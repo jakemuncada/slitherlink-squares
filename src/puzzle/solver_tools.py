@@ -2,9 +2,10 @@
 This module contains functions for solving the board.
 """
 
-from typing import Optional, Union
+from typing import Union
 
-from .board import Board
+from src.puzzle.board import Board
+from src.puzzle.cell_info import CellInfo
 from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException, OptInt
 
 
@@ -76,13 +77,12 @@ class SolverTools:
         countActive = 0
         countBlank = 0
         for idx in bdrIdxList:
-            if board.tools.isValidBorderIdx(idx):
-                if board.borders[idx] == BorderStatus.UNSET:
-                    countUnset += 1
-                elif board.borders[idx] == BorderStatus.ACTIVE:
-                    countActive += 1
-                elif board.borders[idx] == BorderStatus.BLANK:
-                    countBlank += 1
+            if board.borders[idx] == BorderStatus.UNSET:
+                countUnset += 1
+            elif board.borders[idx] == BorderStatus.ACTIVE:
+                countActive += 1
+            elif board.borders[idx] == BorderStatus.BLANK:
+                countBlank += 1
         return (countUnset, countActive, countBlank)
 
     def countUnset(self, board: Board, bdrIdxList: list[int]) -> int:
@@ -159,48 +159,6 @@ class SolverTools:
 
         # If all of the above conditions are true, return True.
         return True
-
-    def shouldFillUpRemainingUnsetBorders(self, board: Board, row: int, col: int) -> bool:
-        """
-        Returns true if all the remaining `UNSET` borders of the target cell 
-        should be set to `ACTIVE`. Returns false otherwise.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-        """
-        num = board.cells[row][col]
-        if num is not None:
-            count = 0
-            for direction in CardinalDirection:
-                status = board.getBorderStatus(row, col, direction)
-                if status != BorderStatus.BLANK:
-                    count += 1
-            if count == num:
-                return True
-        return False
-
-    def shouldRemoveRemainingUnsetBorders(self, board: Board, row: int, col: int) -> bool:
-        """
-        Returns true if all the remaining `UNSET` borders of the target cell 
-        should be set to `BLANK`. Returns false otherwise.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-        """
-        num = board.cells[row][col]
-        if num is not None:
-            count = 0
-            for direction in CardinalDirection:
-                status = board.getBorderStatus(row, col, direction)
-                if status == BorderStatus.ACTIVE:
-                    count += 1
-            if count == num:
-                return True
-        return False
 
     def getDirectionsCellIsPokingAt(self, board: Board, row: int, col: int) \
             -> list[DiagonalDirection]:

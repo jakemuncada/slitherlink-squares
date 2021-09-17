@@ -8,8 +8,9 @@ from typing import Optional
 
 from src.puzzle.solver_init import solveInit
 from src.puzzle.solver_tools import SolverTools
-from src.puzzle.enums import BorderStatus, CardinalDirection, CellBdrs, DiagonalDirection, InvalidBoardException
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException
 from src.puzzle.board import Board
+from src.puzzle.cell_info import CellInfo
 
 
 class Solver():
@@ -27,22 +28,13 @@ class Solver():
         self.reqCells: set[tuple[int, int]] = set()
         self.unreqCells: set[tuple[int, int]] = set()
 
-        self.cellBorders: CellBdrs = []
-
         for i in range(len(board.cells)):
-            self.cellBorders.append([])
             for j in range(len(board.cells[i])):
                 self.allCells.add((i, j))
                 if board.cells[i][j] != None:
                     self.reqCells.add((i, j))
                 else:
                     self.unreqCells.add((i, j))
-
-                topBdr = board.tools.getBorderIdx(i, j, CardinalDirection.TOP)
-                rightBdr = board.tools.getBorderIdx(i, j, CardinalDirection.RIGHT)
-                botBdr = board.tools.getBorderIdx(i, j, CardinalDirection.BOT)
-                leftBdr = board.tools.getBorderIdx(i, j, CardinalDirection.LEFT)
-                self.cellBorders[i].append((topBdr, rightBdr, botBdr, leftBdr))
 
     def solveBoard(self) -> None:
         """
@@ -51,7 +43,7 @@ class Solver():
         t0 = time.time()
 
         try:
-            solveInit(self.board, self.reqCells, self.cellBorders)
+            solveInit(self.board, self.reqCells)
             moveFound = True
             while moveFound:
                 moveFound = self.solveObvious()
@@ -60,8 +52,8 @@ class Solver():
                     moveFound = self.checkCellGroupClues()
                 if not moveFound:
                     moveFound = self.removeLoopMakingMove()
-        except InvalidBoardException:
-            print('The board is invalid.')
+        except InvalidBoardException as e:
+            print('The board is invalid:', e)
         else:
             print('No more moves found. Time elapsed: {:.3f} seconds.'.format(time.time() - t0))
 
@@ -302,21 +294,26 @@ class Solver():
             True if a move was found. False otherwise.
         """
         foundMove = False
-        cellIdx = (row, col)
+
+        cellInfo = CellInfo.init(self.board, row, col)
         reqNum = self.board.cells[row][col]
 
-        if reqNum != None:
-            if self.tools.shouldFillUpRemainingUnsetBorders(self.board, row, col):
-                for borderIdx in self.board.getUnsetBordersOfCell(row, col):
-                    if self.setBorder(borderIdx, BorderStatus.ACTIVE):
-                        self.displayMoveDesc(f'Filling up: Cell {cellIdx}')
-                        foundMove = True
+        if cellInfo.bdrActiveCount == 4:
+            raise InvalidBoardException(f'Cell {row},{col} has 4 active borders.')
 
-            elif self.tools.shouldRemoveRemainingUnsetBorders(self.board, row, col):
-                for borderIdx in self.board.getUnsetBordersOfCell(row, col):
-                    if self.setBorder(borderIdx, BorderStatus.BLANK):
-                        self.displayMoveDesc(f'Removing remaining borders: Cell {cellIdx}')
-                        foundMove = True
+        if reqNum is not None:
+
+            if cellInfo.bdrActiveCount > reqNum:
+                raise InvalidBoardException(f'Cell {row},{col} has {cellInfo.bdrActiveCount} '
+                                            f'active borders but requires only {reqNum}.')
+
+            if cellInfo.bdrUnsetCount + cellInfo.bdrActiveCount < reqNum:
+                raise InvalidBoardException(f'Cell {row},{col} only has {cellInfo.bdrUnsetCount} '
+                                            'unset borders which is not enough to get to '
+                                            f'the {reqNum} requirement.')
+
+            if self.fillOrRemoveRemainingUnsetBorders(cellInfo):
+                return True
 
             if reqNum == 3:
                 # If the 3-cell has an active arm, poke it.
@@ -383,6 +380,29 @@ class Solver():
 
         return foundMove
 
+    def fillOrRemoveRemainingUnsetBorders(self, cellInfo: CellInfo) -> bool:
+        """
+        """
+        foundMove = False
+
+        # Check if the cell has a requirement and there are still remaining unset borders.
+        if cellInfo.reqNum is not None and cellInfo.bdrUnsetCount > 0:
+
+            # If the remaining unset borders should be filled up.
+            if cellInfo.bdrUnsetCount + cellInfo.bdrActiveCount == cellInfo.reqNum:
+                for bdrIdx in cellInfo.unsetBorders:
+                    self.setBorder(bdrIdx, BorderStatus.ACTIVE)
+                    foundMove = True
+
+            # If the required number has been met
+            # and the remaining unset borders should be removed.
+            elif cellInfo.bdrActiveCount == cellInfo.reqNum:
+                for bdrIdx in cellInfo.unsetBorders:
+                    self.setBorder(bdrIdx, BorderStatus.BLANK)
+                    foundMove = True
+
+        return foundMove
+
     def checkCellForContinuousUnsetBorders(self, row: int, col: int) -> bool:
         """
         Check the borders of the cell if it has continuous unset borders.
@@ -430,7 +450,9 @@ class Solver():
 
                 # If the 2-cell has continuos UNSET borders and also has at least one BLANK border,
                 # then the continuous UNSET borders should be activated.
-                _, _, countBlank = self.tools.getStatusCount(self.board, self.cellBorders[row][col])
+                # TODO: Unuse cell borders
+                cellBorders = self.board.tools.getCellBorders(row, col)
+                _, _, countBlank = self.tools.getStatusCount(self.board, cellBorders)
                 if countBlank > 0:
                     for bdrIdx in contUnsetBdrs[0]:
                         if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
@@ -608,10 +630,18 @@ class Solver():
             # If there is, remove the other arms from that corner.
             arms = self.board.tools.getArms(row, col, dxn)
             armsStatuses = [self.board.borders[armIdx] for armIdx in arms]
-            countUnset, countActive, _ = self.tools.getStatusCount(self.board, armsStatuses)
+            countUnset, countActive, _ = self.tools.getStatusCount(self.board, arms)
 
             # The board is invalid if the number of active arms is more than 1
             if countActive > 1:
+                print('---')
+                print(armsStatuses)
+                print(self.tools.getStatusCount(self.board, arms))
+                for asdf in arms:
+                    print(asdf, ":", self.board.borders[asdf])
+                for asdf in armsStatuses:
+                    print(asdf)
+                print(f'countActive:', countActive)
                 raise InvalidBoardException(f'A poked 3-cell cannot have more than two active arms: {row},{col}')
 
             if countActive == 1 and countUnset > 0:

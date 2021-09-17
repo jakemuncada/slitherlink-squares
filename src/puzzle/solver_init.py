@@ -5,17 +5,16 @@ for example like 0-cells and adjacent 3-cells.
 """
 
 from src.puzzle.board import Board
-from src.puzzle.enums import BorderStatus, CardinalDirection, CellBdrs, DiagonalDirection
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection
 
 
-def solveInit(board: Board, reqCells: set[tuple[int, int]], cellBorders: CellBdrs) -> None:
+def solveInit(board: Board, reqCells: set[tuple[int, int]]) -> None:
     """
     Fill in the initial solved-state of the board based on the cell numbers.
 
     Arguments:
         board: The board.
         reqCells: The set of cell indices that contain a required border number.
-        cellBorders: The two-dimensional array containing the border indices of each cell.
 
     Returns:
         True if all the borders were filled-in successfully.
@@ -31,16 +30,19 @@ def solveInit(board: Board, reqCells: set[tuple[int, int]], cellBorders: CellBdr
         if not isSuccess:
             return False
 
+        cellBorders = board.tools.getCellBorders(row, col)
+
         if reqNum == 0:
-            for bdrIdx in cellBorders[row][col]:
+            for bdrIdx in cellBorders:
                 isSuccess = isSuccess and _setBorder(board, bdrIdx, BorderStatus.BLANK)
 
         elif reqNum == 3:
-            isSuccess = isSuccess and _handleAdjacent3Cells(board, cellIdx, reqCells, cellBorders)
-            isSuccess = isSuccess and _handleDiagonallyAdjacent3Cells(board, cellIdx, reqCells, cellBorders)
+            isSuccess = isSuccess and _handleAdjacent3Cells(board, cellIdx, reqCells)
+            isSuccess = isSuccess and _handleDiagonallyAdjacent3Cells(board, cellIdx, reqCells)
 
-def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
-    reqCells: set[tuple[int, int]], cellBorders: CellBdrs) -> bool:
+
+def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
+                          reqCells: set[tuple[int, int]]) -> bool:
     """
     Check and handle the case where the given 3-cell has an adjacent 3-cell.
 
@@ -48,7 +50,6 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
         board: The board.
         cellIdx: The cell index of the 3-cell.
         reqCells: The set of cell indices that contain a required border number.
-        cellBorders: The two-dimensional array containing the border indices of each cell.
 
     Returns:
         True if all the borders were filled-in successfully.
@@ -56,13 +57,14 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
     """
     row = cellIdx[0]
     col = cellIdx[1]
+    cellBorders = board.tools.getCellBorders(row, col)
+    topB, rightB, botB, leftB = cellBorders
 
     def _setAdj3CellBorders(dxn: CardinalDirection, other3CellIdx: tuple[int, int]) -> bool:
         other3CellRow = other3CellIdx[0]
         other3CellCol = other3CellIdx[1]
-        bdrFilter = cellBorders[row][col] + cellBorders[other3CellRow][other3CellCol]
-
-        topB, rightB, botB, leftB = cellBorders[row][col]
+        otherCellBorders = board.tools.getCellBorders(other3CellRow, other3CellCol)
+        bdrFilter = cellBorders + otherCellBorders
 
         if dxn == CardinalDirection.TOP:
             activeBorders = [topB, botB]
@@ -104,8 +106,9 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
 
     return isSuccess
 
-def _handleDiagonallyAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
-    reqCells: set[tuple[int, int]], cellBorders: list[list[tuple[int, int, int, int]]]) -> bool:
+
+def _handleDiagonallyAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
+                                    reqCells: set[tuple[int, int]]) -> bool:
     """
     Check and handle the case where the given 3-cell has a diagonally adjacent 3-cell.
 
@@ -113,7 +116,6 @@ def _handleDiagonallyAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
         board: The board.
         cellIdx: The cell index of the 3-cell.
         reqCells: The set of cell indices that contain a required border number.
-        cellBorders: The two-dimensional array containing the border indices of each cell.
 
     Returns:
         True if all the borders were filled-in successfully.
@@ -121,9 +123,9 @@ def _handleDiagonallyAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
     """
     row = cellIdx[0]
     col = cellIdx[1]
+    topB, rightB, botB, leftB = board.tools.getCellBorders(row, col)
 
     def _setCorner(dxn: DiagonalDirection) -> bool:
-        topB, rightB, botB, leftB = cellBorders[row][col]
         armsUL, armsUR, armsLR, armsLL = board.tools.getArmsOfCell(row, col)
 
         if dxn == DiagonalDirection.ULEFT:
@@ -162,7 +164,7 @@ def _handleDiagonallyAdjacent3Cells(board: Board, cellIdx: tuple[int, int], \
         isSuccess = isSuccess and _setCorner(DiagonalDirection.URIGHT)
 
     return isSuccess
-    
+
 
 def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> bool:
     """

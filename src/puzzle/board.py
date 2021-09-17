@@ -202,27 +202,17 @@ class Board:
                 adjCellGroups.append(0)
         return tuple(adjCellGroups)
 
-    def getUnsetBordersOfCell(self, row: int, col: int) -> list[int]:
-        """
-        Returns a list of the indices of the `UNSET` borders that surround a target cell.
+    # def getUnsetBordersOfCell(self, row: int, col: int) -> list[int]:
+    #     """
+    #     Returns a list of the indices of the `UNSET` borders that surround a target cell.
 
-        Arguments:
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-        """
-        unsetBorders: list[int] = []
-        for direction in CardinalDirection:
-            idx = self.tools.getBorderIdx(row, col, direction)
-            if self.borders[idx] == BorderStatus.UNSET:
-                unsetBorders.append(idx)
-        return unsetBorders
-
-    def getAllUnsetBorders(self) -> list[int]:
-        """
-        Returns the list containing the indices of all `UNSET` borders.
-        """
-        unsetBorders: list[int] = []
-        for idx in range(len(self.borders)):
-            if self.borders[idx] == BorderStatus.UNSET:
-                unsetBorders.append(idx)
-        return unsetBorders
+    #     Arguments:
+    #         row: The row index of the target cell.
+    #         col: The column index of the target cell.
+    #     """
+    #     unsetBorders: list[int] = []
+    #     for direction in CardinalDirection:
+    #         idx = self.tools.getBorderIdx(row, col, direction)
+    #         if self.borders[idx] == BorderStatus.UNSET:
+    #             unsetBorders.append(idx)
+    #     return unsetBorders

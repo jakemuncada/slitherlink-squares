@@ -4,11 +4,10 @@ from __future__ import annotations
 from enum import IntEnum
 from typing import Optional, Tuple
 
+
 OptInt = Optional[int]
 
 Coord = Tuple[int, int]
-
-CellBdrs = list[list[tuple[int, int, int, int]]]
 
 
 class InvalidBoardException(Exception):
@@ -100,15 +99,3 @@ class BorderStatus(IntEnum):
         if self == BorderStatus.BLANK:
             return "BLANK"
         raise AssertionError("Invalid Border Status")
-
-
-class CornerEntry(IntEnum):
-    """
-    An enum which represents how many "outer arms" are active
-    in a cell's corner.
-    """
-    ZERO = 0
-    ONE = 1
-    TWO = 2
-    ZEROTWO = 3
-    UNKNOWN = 4
