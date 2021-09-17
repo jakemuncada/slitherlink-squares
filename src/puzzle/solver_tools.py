@@ -2,10 +2,10 @@
 This module contains functions for solving the board.
 """
 
-from typing import Union
+from typing import Optional, Union
 
 from .board import Board
-from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection
+from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, OptInt
 
 
 class SolverTools:

@@ -33,8 +33,13 @@ class BoardTools:
     def isValidBorderIdx(self, borderIdx: int) -> bool:
         return _isValidBorderIdx(self.rows, self.cols, borderIdx)
 
-    def getCellIdxAtDiagCorner(self, row: int, col: int, dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
-        return _getCellIdxAtAdjCorner(self.rows, self.cols, row, col, dxn)
+    def getCellIdxOfAdjCell(self, row: int, col: int, dxn: CardinalDirection) \
+            -> tuple[Optional[int], Optional[int]]:
+        return _getCellIdxOfAdjCell(self.rows, self.cols, row, col, dxn)
+
+    def getCellIdxAtDiagCorner(self, row: int, col: int, dxn: DiagonalDirection) \
+            -> Optional[tuple[int, int]]:
+        return _getCellIdxAtDiagCorner(self.rows, self.cols, row, col, dxn)
 
     def getBorderIdx(self, row: int, col: int, direction: CardinalDirection) -> int:
         return _getBorderIdx(self.cols, row, col, direction)
@@ -93,8 +98,8 @@ def _numBorders(rows: int, cols: int) -> int:
 
 
 @cache
-def _getCellIdxAtAdjCorner(rows: int, cols: int, row: int, col: int,
-                           dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
+def _getCellIdxAtDiagCorner(rows: int, cols: int, row: int, col: int,
+                            dxn: DiagonalDirection) -> Optional[tuple[int, int]]:
     """
     Get the cell index of the diagonally adjacent cell.
 
@@ -126,6 +131,43 @@ def _getCellIdxAtAdjCorner(rows: int, cols: int, row: int, col: int,
 
     if not _isValidCellIdx(rows, cols, targetRow, targetCol):
         return None
+    return (targetRow, targetCol)
+
+
+@cache
+def _getCellIdxOfAdjCell(rows: int, cols: int, row: int, col: int, dxn: CardinalDirection) \
+        -> tuple[Optional[int], Optional[int]]:
+    """
+    Get the cell index of the adjacent cell.
+
+    Arguments:
+        rows: The number of rows in the board.
+        cols: The number of columns in the board.
+        row: The cell's row index.
+        col: The cell's column index.
+        direction: The diagonal direction of the target adjacent cell.
+
+    Returns:
+        The row and column index of the target border.
+        Tuple of None if the target cell index is not valid.
+    """
+    if dxn == CardinalDirection.TOP:
+        targetRow = row - 1
+        targetCol = col
+    elif dxn == CardinalDirection.RIGHT:
+        targetRow = row
+        targetCol = col + 1
+    elif dxn == CardinalDirection.BOT:
+        targetRow = row + 1
+        targetCol = col
+    elif dxn == CardinalDirection.LEFT:
+        targetRow = row
+        targetCol = col - 1
+    else:
+        raise ValueError(f'Invalid CardinalDirection: {dxn}')
+
+    if not _isValidCellIdx(rows, cols, targetRow, targetCol):
+        return (None, None)
     return (targetRow, targetCol)
 
 

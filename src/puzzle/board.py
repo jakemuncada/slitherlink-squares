@@ -22,8 +22,11 @@ class Board:
     borders: list[BorderStatus] = []
     """The array containing the status of each border."""
 
+    cellGroups: list[list[OptInt]]
+    """The two-dimensional array containing the group ID of each cell."""
+
     def __init__(self, rows: int, cols: int, cells: Optional[list[list[OptInt]]] = None,
-        borders: Optional[list[BorderStatus]] = None):
+                 borders: Optional[list[BorderStatus]] = None):
         """
         Creates a game board.
 
@@ -37,7 +40,7 @@ class Board:
             raise ValueError("Row or column must be a positive number.")
 
         if cells is not None and (len(cells) != rows or len(cells[0]) != cols):
-            raise ValueError("The given cell data does not match " \
+            raise ValueError("The given cell data does not match "
                              "the number of rows and columns of the board.")
 
         if borders is not None and (len(borders) != rows + 1 or len(borders[0]) != cols + 1):
@@ -50,6 +53,7 @@ class Board:
             [[None for _ in range(cols)] for _ in range(rows)]
         self.borders = borders if borders is not None else \
             [BorderStatus.UNSET for _ in range((((cols * 2) + 1) * rows) + cols)]
+        self.cellGroups = [[None for _ in range(cols)] for _ in range(rows)]
 
     @classmethod
     def fromString(cls, rows: int, cols: int, cellDataString: str):
@@ -177,6 +181,26 @@ class Board:
         """
         arms = self.tools.getArms(row, col, dxn)
         return [self.borders[bdrIdx] for bdrIdx in arms]
+
+    def getAdjCellGroups(self, row: int, col: int) -> tuple[OptInt, OptInt, OptInt, OptInt]:
+        """
+        Get the cell groups of each adjacent cells.
+
+        Arguments:
+            row: The row index of the target cell.
+            col: The column index of the target cell.
+
+        Returns:
+            The cell group of each adjacent cell.
+        """
+        adjCellGroups: list[OptInt] = []
+        for dxn in CardinalDirection:
+            adjRow, adjCol = self.tools.getCellIdxOfAdjCell(row, col, dxn)
+            if adjRow is not None and adjCol is not None:
+                adjCellGroups.append(self.cellGroups[adjRow][adjCol])
+            else:
+                adjCellGroups.append(0)
+        return tuple(adjCellGroups)
 
     def getUnsetBordersOfCell(self, row: int, col: int) -> list[int]:
         """

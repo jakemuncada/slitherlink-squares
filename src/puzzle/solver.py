@@ -55,6 +55,9 @@ class Solver():
         while moveFound:
             moveFound = self.solveObvious()
             if not moveFound:
+                self.updateCellGroups()
+                moveFound = self.checkCellGroupClues()
+            if not moveFound:
                 moveFound = self.removeLoopMakingMove()
 
         print('No more moves found. Time elapsed: {:.3f} seconds.'.format(time.time() - t0))
@@ -108,6 +111,113 @@ class Solver():
                     processedBorders.add(borderIdx)
                     if self.processBorder(borderIdx):
                         foundMove = True
+
+        return foundMove
+
+    def updateCellGroups(self) -> None:
+        """
+        Update the cell islands information of the board.
+        """
+        processedCells: set[tuple[int, int]] = set()
+
+        def _process(row: int, col: int, groupId: int):
+            if (row, col) in processedCells:
+                return
+
+            if not self.board.tools.isValidCellIdx(row, col):
+                return
+
+            processedCells.add((row, col))
+            self.board.cellGroups[row][col] = groupId
+
+            for dxn in CardinalDirection:
+                bdrStat = self.board.getBorderStatus(row, col, dxn)
+                adjRow, adjCol = self.board.tools.getCellIdxOfAdjCell(row, col, dxn)
+                if adjRow is not None and adjCol is not None:
+                    if bdrStat == BorderStatus.BLANK:
+                        _process(adjRow, adjCol, groupId)
+                    elif bdrStat == BorderStatus.ACTIVE:
+                        _process(adjRow, adjCol, 1 if groupId == 0 else 0)
+
+        for row in range(self.board.rows):
+            col = 0
+            if self.board.getBorderStatus(row, col, CardinalDirection.LEFT) == BorderStatus.BLANK:
+                _process(row, col, 0)
+            elif self.board.getBorderStatus(row, col, CardinalDirection.LEFT) == BorderStatus.ACTIVE:
+                _process(row, col, 1)
+
+            col = self.board.cols - 1
+            if self.board.getBorderStatus(row, col, CardinalDirection.RIGHT) == BorderStatus.BLANK:
+                _process(row, col, 0)
+            elif self.board.getBorderStatus(row, col, CardinalDirection.RIGHT) == BorderStatus.ACTIVE:
+                _process(row, col, 1)
+
+        for col in range(self.board.cols):
+            row = 0
+            if self.board.getBorderStatus(row, col, CardinalDirection.TOP) == BorderStatus.BLANK:
+                _process(row, col, 0)
+            elif self.board.getBorderStatus(row, col, CardinalDirection.TOP) == BorderStatus.ACTIVE:
+                _process(row, col, 1)
+
+            row = self.board.rows - 1
+            if self.board.getBorderStatus(row, col, CardinalDirection.BOT) == BorderStatus.BLANK:
+                _process(row, col, 0)
+            elif self.board.getBorderStatus(row, col, CardinalDirection.BOT) == BorderStatus.ACTIVE:
+                _process(row, col, 1)
+
+    def checkCellGroupClues(self) -> bool:
+        """
+        If the cell group ID of two adjacent cells are not equal,
+        the border between them should be set to `ACTIVE`.
+        If the cell group ID's are equal, the border should be set to `BLANK`.
+        """
+        foundMove = False
+        def fromAdj(isAdjEqual): return BorderStatus.BLANK if isAdjEqual else BorderStatus.ACTIVE
+
+        for row in range(self.board.rows):
+            for col in range(self.board.cols):
+                borderIndices = self.board.tools.getCellBorders(row, col)
+                countUnset, _, _ = self.tools.getStatusCount(self.board, borderIndices)
+
+                if countUnset == 0:
+                    continue
+
+                topIdx, rightIdx, botIdx, leftIdx = borderIndices
+                borderStats = [self.board.borders[bdrIdx] for bdrIdx in borderIndices]
+
+                bdrTop = self.board.borders[topIdx]
+                bdrRight = self.board.borders[rightIdx]
+                bdrBot = self.board.borders[botIdx]
+                bdrLeft = self.board.borders[leftIdx]
+
+                grpOwn = self.board.cellGroups[row][col]
+                adjCellGroups = self.board.getAdjCellGroups(row, col)
+                grpTop, grpRight, grpBot, grpLeft = adjCellGroups
+
+                if grpOwn is not None:
+                    for i in range(4):
+                        bdrIdx = borderIndices[i]
+                        bdrStat = borderStats[i]
+                        adjGrp = adjCellGroups[i]
+                        if bdrStat == BorderStatus.UNSET and adjGrp is not None:
+                            newStatus = fromAdj(grpOwn == adjGrp)
+                            self.setBorder(bdrIdx, newStatus)
+                            foundMove = True
+                    continue
+
+                cornerStats = ((bdrTop, bdrLeft), (bdrTop, bdrRight), (bdrBot, bdrRight), (bdrBot, bdrLeft))
+                cornerGrps = ((grpTop, grpLeft), (grpTop, grpRight), (grpBot, grpRight), (grpBot, grpLeft))
+
+                for dxn in DiagonalDirection:
+                    bdrStat1, bdrStat2 = cornerStats[dxn]
+                    grp1, grp2 = cornerGrps[dxn]
+
+                    if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+                        if grp1 is not None and grp2 is not None:
+                            if grp1 == grp2:
+                                foundMove = foundMove | self.handleSmoothCorner(row, col, dxn)
+                            else:
+                                foundMove = foundMove | self.initiatePoke(row, col, dxn)
 
         return foundMove
 
@@ -208,8 +318,7 @@ class Solver():
                 for dxn in DiagonalDirection:
                     armsStatus = self.board.getArmsStatus(row, col, dxn)
                     if any(status == BorderStatus.ACTIVE for status in armsStatus):
-                        self.handleCellPoke(row, col, dxn)
-                        break
+                        foundMove = foundMove | self.handleCellPoke(row, col, dxn)
 
             elif reqNum == 2:
                 foundMove = foundMove | self.handle2CellDiagonallyOppositeActiveArms(row, col)
@@ -251,7 +360,7 @@ class Solver():
             for dxn in DiagonalDirection:
                 bdrStat1, bdrStat2 = self.board.getCornerStatus(row, col, dxn.opposite())
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
-                    currCellIdx = self.board.tools.getCellIdxAtAdjCorner(row, col, dxn)
+                    currCellIdx = self.board.tools.getCellIdxAtDiagCorner(row, col, dxn)
                     if self.tools.is3CellIndirectPokedByPropagation(self.board, currCellIdx, dxn):
                         bdrIdx1, bdrIdx2 = self.board.tools.getCornerBorderIndices(row, col, dxn.opposite())
                         self.setBorder(bdrIdx1, BorderStatus.ACTIVE)
@@ -479,7 +588,7 @@ class Solver():
                         f'Activating remaining border on opposite side of poked 2-cell: Cell {row}, {col}')
                     foundMove = True
             # Propagate the poke to the next cell
-            self.initiatePoke(row, col, dxn.opposite())
+            foundMove = foundMove | self.initiatePoke(row, col, dxn.opposite())
 
         # If a 3-cell is poked, the borders opposite the poked corner should be activated.
         elif reqNum == 3:
@@ -547,7 +656,7 @@ class Solver():
         Returns:
             True if a move was found. False otherwise.
         """
-        moveFound = False
+        foundMove = False
         reqNum = self.board.cells[row][col]
 
         cornerIdx1, cornerIdx2 = self.board.tools.getCornerBorderIndices(row, col, dxn)
@@ -577,35 +686,35 @@ class Solver():
             for bdrIdx in (cornerIdx1, cornerIdx2):
                 if self.setBorder(bdrIdx, BorderStatus.BLANK):
                     self.displayMoveDesc(f'Activating smooth corner {dxn} of 1-cell: Cell {row}, {col}')
-                    moveFound = False
-            return moveFound
+                    foundMove = True
+            return foundMove
 
         # A smooth corner on a 3-cell always means that both borders are ACTIVE.
         elif reqNum == 3:
             for bdrIdx in (cornerIdx1, cornerIdx2):
                 if self.setBorder(bdrIdx, BorderStatus.ACTIVE):
                     self.displayMoveDesc(f'Activating smooth corner {dxn} of 3-cell: Cell {row}, {col}')
-                    moveFound = False
-            return moveFound
+                    foundMove = True
+            return foundMove
 
         elif reqNum == 2:
             # Initiate pokes on the directions where its corners isn't smooth.
             if dxn == DiagonalDirection.ULEFT or dxn == DiagonalDirection.LRIGHT:
-                moveFound = moveFound | self.initiatePoke(row, col, DiagonalDirection.URIGHT)
-                moveFound = moveFound | self.initiatePoke(row, col, DiagonalDirection.LLEFT)
+                foundMove = foundMove | self.initiatePoke(row, col, DiagonalDirection.URIGHT)
+                foundMove = foundMove | self.initiatePoke(row, col, DiagonalDirection.LLEFT)
             elif dxn == DiagonalDirection.URIGHT or dxn == DiagonalDirection.LLEFT:
-                moveFound = moveFound | self.initiatePoke(row, col, DiagonalDirection.ULEFT)
-                moveFound = moveFound | self.initiatePoke(row, col, DiagonalDirection.LRIGHT)
+                foundMove = foundMove | self.initiatePoke(row, col, DiagonalDirection.ULEFT)
+                foundMove = foundMove | self.initiatePoke(row, col, DiagonalDirection.LRIGHT)
             else:
                 raise ValueError(f'Invalid DiagonalDirection: {dxn}')
 
             # Propagate the smoothing because if a 2-cell's corner is smooth, the opposite corner is also smooth.
-            targetCellIdx = self.board.tools.getCellIdxAtAdjCorner(row, col, dxn.opposite())
+            targetCellIdx = self.board.tools.getCellIdxAtDiagCorner(row, col, dxn.opposite())
             if targetCellIdx is not None:
                 targetRow, targetCol = targetCellIdx
-                moveFound = moveFound | self.handleSmoothCorner(targetRow, targetCol, dxn)
+                foundMove = foundMove | self.handleSmoothCorner(targetRow, targetCol, dxn)
 
-        return False
+        return foundMove
 
     def handle2CellDiagonallyOppositeActiveArms(self, row: int, col: int) -> bool:
         """
@@ -659,7 +768,7 @@ class Solver():
         """
         adj2Cells: dict[DiagonalDirection, Optional[tuple[int, int]]] = {}
         for dxn in DiagonalDirection:
-            cellIdx = self.board.tools.getCellIdxAtAdjCorner(row, col, dxn)
+            cellIdx = self.board.tools.getCellIdxAtDiagCorner(row, col, dxn)
             if cellIdx is not None and self.board.cells[cellIdx[0]][cellIdx[1]] == 2:
                 adj2Cells[dxn] = (cellIdx[0], cellIdx[1])
             else:

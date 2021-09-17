@@ -18,12 +18,12 @@ pg.init()
 pg.display.set_caption('Slitherlink Squares')
 
 SCREEN_SIZE = (1200, 980)
-SCREEN_RECT = pg.Rect((0,0), SCREEN_SIZE)
-SCREEN_MARGIN = (20, 10, 20, 10) # left, top, right, bot
+SCREEN_RECT = pg.Rect((0, 0), SCREEN_SIZE)
+SCREEN_MARGIN = (20, 10, 20, 10)  # left, top, right, bot
 RECT_MARGIN = 4
-PUZZ_RECT = pg.Rect(SCREEN_MARGIN[0], SCREEN_MARGIN[1], \
-    SCREEN_SIZE[0] - (SCREEN_MARGIN[0] + SCREEN_MARGIN[2]), \
-    SCREEN_SIZE[1] - (SCREEN_MARGIN[1] + SCREEN_MARGIN[3]))
+PUZZ_RECT = pg.Rect(SCREEN_MARGIN[0], SCREEN_MARGIN[1],
+                    SCREEN_SIZE[0] - (SCREEN_MARGIN[0] + SCREEN_MARGIN[2]),
+                    SCREEN_SIZE[1] - (SCREEN_MARGIN[1] + SCREEN_MARGIN[3]))
 SCREEN_CENTER = (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2)
 
 COLORKEY = (255, 0, 255)
@@ -54,6 +54,9 @@ class Renderer:
         self.vtxSurface: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
         self.cellLabelSurface: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
         self.borderSurface: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
+        self.cellGroupOverlay: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
+
+        self.showCellGroupOverlay = False
 
         # Compute the optimal cell size
         totalWidth = PUZZ_RECT.width - (RECT_MARGIN * 2)
@@ -72,6 +75,12 @@ class Renderer:
         self.prepare()
         self.draw()
 
+    def toggleCellGroupOverlay(self) -> None:
+        """
+        Show/hide the cell group overlay.
+        """
+        self.showCellGroupOverlay = not self.showCellGroupOverlay
+
     def prepare(self) -> None:
         """
         Prepare the surfaces based on the size of the board.
@@ -79,8 +88,8 @@ class Renderer:
         def _drawDashedLine(pt1, pt2):
             point1 = (pt1[0], pt1[1])
             point2 = (pt2[0], pt2[1])
-            self.drawDashedLine(self.baseSurface, BORDER_UNSET_COLOR, 
-                                 point1, point2, BORDER_UNSET_THICKNESS)
+            self.drawDashedLine(self.baseSurface, BORDER_UNSET_COLOR,
+                                point1, point2, BORDER_UNSET_THICKNESS)
 
         def _drawVtx(pt):
             pg.draw.circle(self.vtxSurface, VERTEX_COLOR, pt, VERTEX_RADIUS)
@@ -99,6 +108,7 @@ class Renderer:
         self.cellLabelSurface.fill(BG_COLOR)
 
         self.borderSurface.set_colorkey(COLORKEY)
+        self.cellGroupOverlay.set_colorkey(COLORKEY)
 
         for i in range(self.board.rows):
             for j in range(self.board.cols):
@@ -123,6 +133,11 @@ class Renderer:
         """
         self.screen.fill(BG_COLOR)
         self.screen.blit(self.baseSurface, PUZZ_RECT)
+
+        if self.showCellGroupOverlay:
+            self.updateCellGroupOverlay()
+            self.screen.blit(self.cellGroupOverlay, PUZZ_RECT)
+
         self.screen.blit(self.cellLabelSurface, PUZZ_RECT)
         self.drawBorders()
         self.screen.blit(self.borderSurface, PUZZ_RECT)
@@ -152,7 +167,7 @@ class Renderer:
                     v2 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
                 else:
                     raise ValueError(f'Invalid direction: {direction}')
-                
+
                 if status == BorderStatus.ACTIVE:
                     pg.draw.line(self.borderSurface, (255, 30, 30), v1, v2, BORDER_ACTIVE_THICKNESS)
                 else:
@@ -167,8 +182,33 @@ class Renderer:
                 if j == 0:
                     _drawBorder(i, j, CardinalDirection.LEFT)
 
+    def updateCellGroupOverlay(self) -> None:
+        """
+        Update the cell group overlay surface.
+        """
+        self.cellGroupOverlay.fill(COLORKEY)
+
+        colors = [(0, 0, 120), (0, 120, 0)]
+
+        for row in range(self.board.rows):
+            for col in range(self.board.cols):
+                colorIdx = self.board.cellGroups[row][col]
+                if colorIdx is not None:
+                    ul = self.getVertexCoords(row, col, DiagonalDirection.ULEFT)
+                    lr = self.getVertexCoords(row, col, DiagonalDirection.LRIGHT)
+
+                    margin = 3
+                    left = ul[0] + (margin * 1.5)
+                    top = ul[1] + (margin * 1.5)
+                    width = lr[0] - ul[0] - (margin * 2)
+                    height = lr[1] - ul[1] - (margin * 2)
+
+                    color = colors[colorIdx]
+                    rect = Rect(left, top, width, height)
+                    pg.draw.rect(self.cellGroupOverlay, color, rect)
+
     def drawDashedLine(self, surface: Surface, color: tuple[int, int, int],
-                        pt1: tuple[int, int], pt2: tuple[int, int], thickness: int) -> Rect:
+                       pt1: tuple[int, int], pt2: tuple[int, int], thickness: int) -> Rect:
         """
         Draw a dashed line.
 

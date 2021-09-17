@@ -76,6 +76,8 @@ class Control:
             self.solver.solveBoard()
         elif keys[pg.K_r]:
             self.resetBoard()
+        elif keys[pg.K_o]:
+            self.renderer.toggleCellGroupOverlay()
 
     def clickBorder(self, borderIdx: Optional[int]) -> None:
         """
@@ -105,3 +107,6 @@ class Control:
         """
         for borderIdx in range(len(self.board.borders)):
             self.board.setBorderToUnset(borderIdx)
+        for row in range(self.board.rows):
+            for col in range(self.board.cols):
+                self.board.cellGroups[row][col] = None

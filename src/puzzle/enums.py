@@ -25,10 +25,10 @@ class DiagonalDirection(IntEnum):
     """
     The four diagonal directions: `ULEFT`, `URIGHT`, `LRIGHT`, and `LLEFT`.
     """
-    URIGHT = 0
-    LRIGHT = 1
-    LLEFT = 2
-    ULEFT = 3
+    ULEFT = 0
+    URIGHT = 1
+    LRIGHT = 2
+    LLEFT = 3
 
     def opposite(self) -> DiagonalDirection:
         """
