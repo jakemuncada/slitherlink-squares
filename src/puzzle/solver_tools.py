@@ -260,6 +260,9 @@ class SolverTools:
         if not board.tools.isValidCellIdx(currRow, currCol):
             return False
 
+        if board.cells[currRow][currCol] == 3:
+            return True
+
         if board.cells[currRow][currCol] != 2:
             return False
 

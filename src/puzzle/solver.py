@@ -330,7 +330,7 @@ class Solver():
 
         foundMove = self.checkOuterCellPoking(cellInfo)
 
-        if not foundMove and reqNum == 3:
+        if not foundMove and reqNum == 3 and cellInfo.bdrUnsetCount > 0:
             # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
             for dxn in DiagonalDirection:
                 bdrStat1, bdrStat2 = self.board.getCornerStatus(row, col, dxn.opposite())
@@ -341,6 +341,16 @@ class Solver():
                         self.setBorder(bdrIdx1, BorderStatus.ACTIVE)
                         self.setBorder(bdrIdx2, BorderStatus.ACTIVE)
                         foundMove = True
+
+        if not foundMove and reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
+            for dxn in DiagonalDirection:
+                bdrStat1, bdrStat2 = self.board.getCornerStatus(row, col, dxn.opposite())
+                if (bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.BLANK) or \
+                        (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.UNSET):
+                    currCellIdx = self.board.tools.getCellIdxAtDiagCorner(row, col, dxn)
+                    if self.tools.isCellIndirectPokedByPropagation(self.board, currCellIdx, dxn):
+                        if self.handleCellPoke(row, col, dxn):
+                            return True
 
         # Check every cell if it is poking a diagonally adjacent cell.
         if not foundMove:
