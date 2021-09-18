@@ -101,5 +101,5 @@ class Control:
         Arguments:
             borderIdx: The index of the clicked border.
         """
-        print(f'Clicked cell {cellIdx}')
+        print(f'Clicked cell {cellIdx}: {[str(x) for x in self.solver.cornerEntry[cellIdx[0]][cellIdx[1]]]}')
         self.renderer.draw()

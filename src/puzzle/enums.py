@@ -109,3 +109,30 @@ class BorderStatus(IntEnum):
         if self == BorderStatus.BLANK:
             return "BLANK"
         raise ValueError("Invalid Border Status")
+
+
+class CornerEntry(IntEnum):
+    """
+    The type of corner of the cell based on how many arms
+    it is supposed to have.
+    """
+    POKE = 0
+    SMOOTH = 1
+    UNKNOWN = 2
+
+    def opposite(self) -> CornerEntry:
+        """Returns the opposite CornerEntry."""
+        if self == CornerEntry.POKE:
+            return CornerEntry.SMOOTH
+        if self == CornerEntry.SMOOTH:
+            return CornerEntry.POKE
+        raise ValueError("Only POKE and SMOOTH corner entries have opposites.")
+
+    def __str__(self) -> str:
+        if self == CornerEntry.POKE:
+            return "POKE"
+        if self == CornerEntry.SMOOTH:
+            return "SMOOTH"
+        if self == CornerEntry.UNKNOWN:
+            return "UNKNOWN"
+        raise ValueError("Invalid CornerEntry")

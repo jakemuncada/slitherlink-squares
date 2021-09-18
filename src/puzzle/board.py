@@ -16,6 +16,9 @@ class Board:
     cols: int = 0
     """The number of columns of the board."""
 
+    isClone: bool = False
+    """True if the board is a clone. False otherwise."""
+
     cells: list[list[OptInt]] = [[]]
     """The two-dimensional array containing the required sides of each cell."""
 
@@ -124,7 +127,9 @@ class Board:
         """
         cellsCopy = deepcopy(self.cells)
         bordersCopy = [bdrStatus for bdrStatus in self.borders]
-        return Board(self.rows, self.cols, cellsCopy, bordersCopy)
+        clonedBoard = Board(self.rows, self.cols, cellsCopy, bordersCopy)
+        clonedBoard.isClone = True
+        return clonedBoard
 
     ##################################################
     # BORDER STATUS SETTERS
