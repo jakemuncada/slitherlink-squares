@@ -145,7 +145,7 @@ class Solver():
         """
         Solve the board starting from its current state.
         """
-        if self.initialized:
+        if not self.initialized:
             solveInit(self.board)
             self.initialized = True
             updateUI()
