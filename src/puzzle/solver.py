@@ -92,7 +92,8 @@ class Solver():
         solveInit(self.board)
         self.initialized = True
 
-        updateUI()
+        if updateUI:
+            updateUI()
 
         isValid, timeElapsed = self._solve(self.board, updateUI)
         print('Initial solve: {:.3f} seconds'.format(timeElapsed))
@@ -106,7 +107,8 @@ class Solver():
         while True:
             t1 = time.time()
 
-            updateUI()
+            if updateUI:
+                updateUI()
 
             if self.currGuessIdx >= len(self.guesses):
                 self.currGuessIdx = 0
@@ -148,7 +150,8 @@ class Solver():
         if not self.initialized:
             solveInit(self.board)
             self.initialized = True
-            updateUI()
+            if updateUI:
+                updateUI()
 
         isValid, timeElapsed = self._solve(self.board, updateUI)
         print('Solve: {:.3f} seconds [{}]'.format(timeElapsed, isValid))
