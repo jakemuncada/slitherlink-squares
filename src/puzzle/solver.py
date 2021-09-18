@@ -3,6 +3,7 @@ Solver for Slitherlink-Squares.
 """
 
 import time
+import random
 from functools import cache
 from typing import Optional, Callable
 
@@ -25,39 +26,8 @@ class Solver():
         self.board = board
         self.tools = SolverTools()
         self.initialized = False
-        self.currGuessIdx = 0
-        self.guesses: list[tuple[int, BorderStatus]] = []
-        self.initializeGuessPriorities()
         self.prioCells: list[tuple[int, int]] = []
         self.initializePrioritizedCellList()
-
-    def initializeGuessPriorities(self) -> None:
-        """
-        Rank all the guesses according to their priority.
-        Borders with a high guess priority will be guessed first.
-        """
-        highPrioGuesses: list[tuple[int, BorderStatus]] = []
-        medPrioGuesses: list[tuple[int, BorderStatus]] = []
-        lowPrioGuesses: list[tuple[int, BorderStatus]] = []
-
-        for row in range(self.board.rows):
-            for col in range(self.board.cols):
-                reqNum = self.board.cells[row][col]
-                for dxn in CardinalDirection:
-                    bdrIdx = self.board.tools.getBorderIdx(row, col, dxn)
-                    if reqNum == 1:
-                        highPrioGuesses.append((bdrIdx, BorderStatus.ACTIVE))
-                    elif reqNum == 3:
-                        highPrioGuesses.append((bdrIdx, BorderStatus.BLANK))
-                    elif reqNum == 2:
-                        medPrioGuesses.append((bdrIdx, BorderStatus.ACTIVE))
-                    elif reqNum is None:
-                        lowPrioGuesses.append((bdrIdx, BorderStatus.ACTIVE))
-
-        self.guesses = []
-        self.guesses.extend(highPrioGuesses)
-        self.guesses.extend(medPrioGuesses)
-        self.guesses.extend(lowPrioGuesses)
 
     def initializePrioritizedCellList(self) -> None:
         """
@@ -101,7 +71,12 @@ class Solver():
         assert isValid, '##### ERROR: The first solve unexpectedly ' \
             'resulted in an invalid board. #####'
 
-        self.currGuessIdx = 0
+        currGuessIdx = 0
+        guessList = self.getGuesses()
+        print(f'Number of guesses found after initial solve: {len(guessList)}')
+
+        currGuessNum = 1
+        correctGuessCount = 0
 
         # Continue guessing until the board is completed.
         while True:
@@ -110,30 +85,32 @@ class Solver():
             if updateUI:
                 updateUI()
 
-            if self.currGuessIdx >= len(self.guesses):
-                self.currGuessIdx = 0
+            if currGuessIdx >= len(guessList):
+                currGuessIdx = 0
+                guessList = self.getGuesses()
+                print(f'Number of guesses found for Guess #{currGuessNum}: {len(guessList)}')
 
-            while self.currGuessIdx < len(self.guesses):
-                guessBdrIdx, guessStatus = self.guesses[self.currGuessIdx]
+            while currGuessIdx < len(guessList):
+                guessBdrIdx, guessStatus = guessList[currGuessIdx]
 
                 if self.board.borders[guessBdrIdx] == BorderStatus.UNSET:
                     cloneBoard = self.board.clone()
                     self.setBorder(cloneBoard, guessBdrIdx, guessStatus)
+                    currGuessNum += 1
 
                     isValid, timeElapsed = self._solve(cloneBoard, updateUI)
-                    # print('Guessed by setting border {} to {}: {:.3f} seconds'.format(
-                    #     guessBdrIdx, guessStatus, timeElapsed))
 
-                    isValid = isValid and self.simpleValidation(cloneBoard)
+                    # isValid = isValid and self.simpleValidation(cloneBoard)
 
                     # If the guess was invalid, then the opposite move should be valid.
                     if not isValid:
-                        print('Correct guess: border {} to {} [{:.3f} seconds]'.format(
-                            guessBdrIdx, guessStatus.opposite(), time.time() - t1))
+                        print('Guess #{}: border {} to {} [{:.3f} seconds]'.format(
+                            currGuessNum, guessBdrIdx, guessStatus.opposite(), time.time() - t1))
                         self.setBorder(self.board, guessBdrIdx, guessStatus.opposite())
+                        correctGuessCount += 1
                         break
 
-                self.currGuessIdx += 1
+                currGuessIdx += 1
 
             isValid, timeElapsed = self._solve(self.board, updateUI)
             print('Solve: {:.3f} seconds'.format(timeElapsed))
@@ -141,7 +118,41 @@ class Solver():
             if self.board.isComplete:
                 break
 
-        print('Solving the board from scratch took {:.3f} seconds.'.format(time.time() - t0))
+        print('Solving the board from scratch took {:.3f} seconds '
+              'with {} guesses, {} of which were correct.'
+              .format(time.time() - t0, currGuessNum, correctGuessCount))
+
+    def getGuesses(self) -> list[tuple[int, BorderStatus]]:
+        """
+        Get a list of moves to guess.
+        """
+        doneBorders: set[int] = set()
+        highPrio: list[tuple[int, BorderStatus]] = []
+        lowPrio: list[tuple[int, BorderStatus]] = []
+
+        for row in range(self.board.rows):
+            for col in range(self.board.cols):
+                for dxn in CardinalDirection:
+                    bdrIdx = self.board.tools.getBorderIdx(row, col, dxn)
+                    if self.board.borders[bdrIdx] == BorderStatus.UNSET:
+                        doneBorders.add(bdrIdx)
+                        if self.board.cells[row][col] == 1:
+                            highPrio.append((bdrIdx, BorderStatus.ACTIVE))
+                        elif self.board.cells[row][col] == 3:
+                            highPrio.append((bdrIdx, BorderStatus.BLANK))
+
+        for bdrIdx in range(len(self.board.borders)):
+            if bdrIdx not in doneBorders:
+                if self.board.borders[bdrIdx] == BorderStatus.UNSET:
+                    lowPrio.append((bdrIdx, BorderStatus.ACTIVE))
+
+        random.shuffle(highPrio)
+        random.shuffle(lowPrio)
+
+        assert len(highPrio) + len(lowPrio) > 0, \
+            f'No guesses found. Is board complete: {self.board.isComplete}'
+
+        return highPrio + lowPrio
 
     def solveCurrentBoard(self, updateUI: Callable) -> None:
         """
@@ -1078,7 +1089,7 @@ class Solver():
 
         return foundMove
 
-    @cache
+    @ cache
     def getDiagAdj2Cells(self, row: int, col: int) \
             -> dict[DiagonalDirection, Optional[tuple[int, int]]]:
         """
