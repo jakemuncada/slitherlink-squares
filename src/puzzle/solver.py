@@ -1003,13 +1003,17 @@ class Solver():
                     foundMove = True
 
         if not foundMove:
+            # Get all arms of the cell except for the direction that was poked.
             otherArms: list[int] = []
             for otherDxn in DiagonalDirection:
                 if otherDxn == dxn:
                     continue
                 otherArms.extend(board.tools.getArms(row, col, otherDxn))
 
+            # Count the UNSET and ACTIVE arms from all those other arms.
             countUnset, countActive, _ = self.tools.getStatusCount(board, otherArms)
+
+            # If there is only one remaining UNSET arm, set it accordingly.
             if countUnset == 1:
                 isActiveBordersEven = countActive % 2 == 0
                 newStatus = BorderStatus.ACTIVE if isActiveBordersEven else BorderStatus.BLANK
