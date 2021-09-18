@@ -23,20 +23,19 @@ def solveInit(board: Board) -> None:
                 _setBorder(board, bdrIdx, BorderStatus.BLANK)
 
         elif board.cells[row][col] == 3:
-            _handleAdjacent3Cells(board, (row, col))
-            _handleDiagonal3Cells(board, (row, col))
+            _handleAdjacent3Cells(board, row, col)
+            _handleDiagonal3Cells(board, row, col)
 
 
-def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int]) -> None:
+def _handleAdjacent3Cells(board: Board, row: int, col: int) -> None:
     """
     Check and handle the case where the given 3-cell has an adjacent 3-cell.
 
     Arguments:
         board: The board.
-        cellIdx: The cell index of the 3-cell.
+        row: The row index of the 3-cell.
+        col: The column index of the 3-cell.
     """
-    row = cellIdx[0]
-    col = cellIdx[1]
     cellBorders = board.tools.getCellBorders(row, col)
     topB, rightB, botB, leftB = cellBorders
 
@@ -82,7 +81,7 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int]) -> None:
         _setAdj3CellBorders(CardinalDirection.LEFT, (row, col - 1))
 
 
-def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int]) -> None:
+def _handleDiagonal3Cells(board: Board, row: int, col: int) -> None:
     """
     Check and handle the case where the given 3-cell
     has a 3-cell diagonal from it. There may be some 2-cells
@@ -90,10 +89,9 @@ def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int]) -> None:
 
     Arguments:
         board: The board.
-        cellIdx: The cell index of the 3-cell.
+        row: The row index of the 3-cell.
+        col: The column index of the 3-cell.
     """
-    row = cellIdx[0]
-    col = cellIdx[1]
     topB, rightB, botB, leftB = board.tools.getCellBorders(row, col)
 
     def _setCorner(dxn: DiagonalDirection) -> None:

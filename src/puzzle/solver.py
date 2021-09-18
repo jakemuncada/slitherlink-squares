@@ -151,8 +151,10 @@ class Solver():
         random.shuffle(highPrio)
         random.shuffle(lowPrio)
 
-        assert len(highPrio) + len(lowPrio) > 0, \
-            f'No guesses found. Is board complete: {self.board.isComplete}'
+        if len(highPrio) + len(lowPrio) == 0:
+            if self.board.isComplete:
+                return []
+            raise AssertionError('The board is not yet complete, but no guesses were found.')
 
         return highPrio + lowPrio
 
@@ -554,6 +556,8 @@ class Solver():
                     if any(status == BorderStatus.ACTIVE for status in armsStatus):
                         foundMove = foundMove | self.handleCellPoke(board, row, col, dxn)
 
+                foundMove = foundMove | self.checkThreeTwoThreeTwoPattern(board, cellInfo)
+
             elif reqNum == 2:
                 foundMove = foundMove | self.handle2CellDiagonallyOppositeActiveArms(board, row, col)
 
@@ -622,6 +626,37 @@ class Solver():
                     foundMove = True
 
         return foundMove
+
+    def checkThreeTwoThreeTwoPattern(self, board: Board, cellInfo: CellInfo) -> bool:
+        """
+        Check and handle the case where the two 3-cells and two 2-cells
+        are adjacent each other, forming a 2x2 square.
+
+        Arguments:
+            board: The board.
+            row: The row index of the 3-cell.
+            col: The column index of the 3-cell.
+
+        Returns:
+            True if a move was found. False otherwise.
+        """
+        rows = board.rows
+        cols = board.cols
+        row = cellInfo.row
+        col = cellInfo.col
+        found = False
+
+        if row + 1 < rows and col + 1 < cols and board.cells[row + 1][col + 1] == 3:
+            if board.cells[row][col + 1] == 2 and board.cells[row + 1][col] == 2:
+                found = found | self.initiatePoke(board, row, col + 1, DiagonalDirection.URIGHT)
+                found = found | self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT)
+
+        elif row + 1 < rows and col - 1 >= 0 and board.cells[row + 1][col - 1] == 3:
+            if board.cells[row][col - 1] == 2 and board.cells[row + 1][col] == 2:
+                found = found | self.initiatePoke(board, row, col - 1, DiagonalDirection.URIGHT)
+                found = found | self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT)
+
+        return found
 
     def check3CellRectanglePattern(self, board: Board, cellInfo: CellInfo) -> bool:
         """
