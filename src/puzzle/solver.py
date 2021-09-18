@@ -1059,6 +1059,23 @@ class Solver():
                 raise InvalidBoardException(f'The cell {row},{col} should have a smooth {dxn} corner, '
                                             'but its corners are invalid.')
 
+        # Determine if the smooth corner only has one UNSET arm.
+        unsetArmCount = 0
+        activeArmCount = 0
+        unsetArmIdx = None
+        for armIdx in self.board.tools.getArms(row, col, dxn):
+            if board.borders[armIdx] == BorderStatus.ACTIVE:
+                activeArmCount += 1
+            elif board.borders[armIdx] == BorderStatus.UNSET:
+                unsetArmCount += 1
+                unsetArmIdx = armIdx
+
+        # If the smooth corner only has one UNSET arm, set it to accordingly.
+        if unsetArmCount == 1:
+            newStatus = BorderStatus.BLANK if activeArmCount % 2 == 0 else BorderStatus.ACTIVE
+            if self.setBorder(board, unsetArmIdx, newStatus):
+                return True
+
         # A smooth corner on a 1-cell always means that both borders are BLANK.
         if cellInfo.reqNum == 1:
             for bdrIdx in (cornerIdx1, cornerIdx2):
@@ -1088,6 +1105,12 @@ class Solver():
                 targetRow, targetCol = targetCellIdx
                 targetCellInfo = CellInfo.init(board, targetRow, targetCol)
                 foundMove = foundMove | self.handleSmoothCorner(board, targetCellInfo, dxn)
+            else:
+                # If there is no diagonally adjacent cell, then this is an outer edge cell,
+                # so we just directly remove the one arm at that direction.
+                for armIdx in self.board.tools.getArms(row, col, dxn.opposite()):
+                    if self.setBorder(board, armIdx, BorderStatus.BLANK):
+                        return True
 
         return foundMove
 
