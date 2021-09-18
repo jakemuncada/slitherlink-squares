@@ -333,52 +333,91 @@ class Solver():
         foundMove = False
         def fromAdj(isAdjEqual): return BorderStatus.BLANK if isAdjEqual else BorderStatus.ACTIVE
 
-        for row in range(board.rows):
-            for col in range(board.cols):
-                cellInfo = CellInfo.init(board, row, col)
+        for row, col in self.prioCells:
+            cellInfo = CellInfo.init(board, row, col)
 
-                borderIndices = board.tools.getCellBorders(row, col)
-                countUnset, _, _ = self.tools.getStatusCount(board, borderIndices)
+            borderIndices = board.tools.getCellBorders(row, col)
+            countUnset, _, _ = self.tools.getStatusCount(board, borderIndices)
 
-                if countUnset == 0:
-                    continue
+            if countUnset == 0:
+                continue
 
-                topIdx, rightIdx, botIdx, leftIdx = borderIndices
-                borderStats = [board.borders[bdrIdx] for bdrIdx in borderIndices]
+            topIdx, rightIdx, botIdx, leftIdx = borderIndices
+            borderStats = [board.borders[bdrIdx] for bdrIdx in borderIndices]
 
-                bdrTop = board.borders[topIdx]
-                bdrRight = board.borders[rightIdx]
-                bdrBot = board.borders[botIdx]
-                bdrLeft = board.borders[leftIdx]
+            bdrTop = board.borders[topIdx]
+            bdrRight = board.borders[rightIdx]
+            bdrBot = board.borders[botIdx]
+            bdrLeft = board.borders[leftIdx]
 
-                grpOwn = board.cellGroups[row][col]
-                adjCellGroups = board.getAdjCellGroups(row, col)
-                grpTop, grpRight, grpBot, grpLeft = adjCellGroups
+            grpOwn = board.cellGroups[row][col]
+            adjCellGroups = board.getAdjCellGroups(row, col)
+            grpTop, grpRight, grpBot, grpLeft = adjCellGroups
 
-                if grpOwn is not None:
-                    for i in range(4):
-                        bdrIdx = borderIndices[i]
-                        bdrStat = borderStats[i]
-                        adjGrp = adjCellGroups[i]
-                        if bdrStat == BorderStatus.UNSET and adjGrp is not None:
-                            newStatus = fromAdj(grpOwn == adjGrp)
-                            self.setBorder(board, bdrIdx, newStatus)
-                            foundMove = True
-                    continue
+            _found = False
+            if cellInfo.reqNum == 1:
+                if grpTop == grpBot and grpTop is not None and grpBot is not None:
+                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
+                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
+                elif grpTop != grpBot and grpTop is not None and grpBot is not None:
+                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
+                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
 
-                cornerStats = ((bdrTop, bdrLeft), (bdrTop, bdrRight), (bdrBot, bdrRight), (bdrBot, bdrLeft))
-                cornerGrps = ((grpTop, grpLeft), (grpTop, grpRight), (grpBot, grpRight), (grpBot, grpLeft))
+                if grpLeft == grpRight and grpLeft is not None and grpRight is not None:
+                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
+                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
+                elif grpLeft != grpRight and grpLeft is not None and grpRight is not None:
+                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
+                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
 
-                for dxn in DiagonalDirection:
-                    bdrStat1, bdrStat2 = cornerStats[dxn]
-                    grp1, grp2 = cornerGrps[dxn]
+            elif cellInfo.reqNum == 2:
+                if (grpTop == grpBot and grpTop is not None) or \
+                        (grpLeft == grpRight and grpLeft is not None):
+                    for dxn in DiagonalDirection:
+                        _found = _found | self.initiatePoke(board, row, col, dxn)
 
-                    if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
-                        if grp1 is not None and grp2 is not None:
-                            if grp1 == grp2:
-                                foundMove = foundMove | self.handleSmoothCorner(board, cellInfo, dxn)
-                            else:
-                                foundMove = foundMove | self.initiatePoke(board, row, col, dxn)
+            elif cellInfo.reqNum == 3:
+                if grpTop == grpBot and grpTop is not None:
+                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
+                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
+                if grpLeft == grpRight and grpLeft is not None:
+                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
+                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
+                if grpTop is not None and grpBot is not None and grpTop != grpBot:
+                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
+                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
+                if grpLeft is not None and grpRight is not None and grpLeft != grpRight:
+                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
+                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
+
+            foundMove = foundMove or _found
+            if _found:
+                continue
+
+            if grpOwn is not None:
+                for i in range(4):
+                    bdrIdx = borderIndices[i]
+                    bdrStat = borderStats[i]
+                    adjGrp = adjCellGroups[i]
+                    if bdrStat == BorderStatus.UNSET and adjGrp is not None:
+                        newStatus = fromAdj(grpOwn == adjGrp)
+                        self.setBorder(board, bdrIdx, newStatus)
+                        foundMove = True
+                continue
+
+            cornerStats = ((bdrTop, bdrLeft), (bdrTop, bdrRight), (bdrBot, bdrRight), (bdrBot, bdrLeft))
+            cornerGrps = ((grpTop, grpLeft), (grpTop, grpRight), (grpBot, grpRight), (grpBot, grpLeft))
+
+            for dxn in DiagonalDirection:
+                bdrStat1, bdrStat2 = cornerStats[dxn]
+                grp1, grp2 = cornerGrps[dxn]
+
+                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+                    if grp1 is not None and grp2 is not None:
+                        if grp1 == grp2:
+                            foundMove = foundMove | self.handleSmoothCorner(board, cellInfo, dxn)
+                        else:
+                            foundMove = foundMove | self.initiatePoke(board, row, col, dxn)
 
         return foundMove
 
