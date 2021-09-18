@@ -15,36 +15,25 @@ def solveInit(board: Board) -> None:
     Arguments:
         board: The board.
     """
-    reqCells: set[tuple[int, int]] = set()
-    for row in range(board.rows):
-        for col in range(board.cols):
-            if board.cells[row][col] is not None:
-                reqCells.add((row, col))
+    for row, col in board.reqCells:
+        cellBorders = board.tools.getCellBorders(row, col)
 
-    for row in range(board.rows):
-        for col in range(board.cols):
+        if board.cells[row][col] == 0:
+            for bdrIdx in cellBorders:
+                _setBorder(board, bdrIdx, BorderStatus.BLANK)
 
-            reqNum = board.cells[row][col]
-            cellBorders = board.tools.getCellBorders(row, col)
-
-            if reqNum == 0:
-                for bdrIdx in cellBorders:
-                    _setBorder(board, bdrIdx, BorderStatus.BLANK)
-
-            elif reqNum == 3:
-                _handleAdjacent3Cells(board, (row, col), reqCells)
-                _handleDiagonal3Cells(board, (row, col), reqCells)
+        elif board.cells[row][col] == 3:
+            _handleAdjacent3Cells(board, (row, col))
+            _handleDiagonal3Cells(board, (row, col))
 
 
-def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
-                          reqCells: set[tuple[int, int]]) -> None:
+def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int]) -> None:
     """
     Check and handle the case where the given 3-cell has an adjacent 3-cell.
 
     Arguments:
         board: The board.
         cellIdx: The cell index of the 3-cell.
-        reqCells: The set of cell indices that contain a required border number.
     """
     row = cellIdx[0]
     col = cellIdx[1]
@@ -80,21 +69,20 @@ def _handleAdjacent3Cells(board: Board, cellIdx: tuple[int, int],
             _setBorder(board, bdr, BorderStatus.BLANK)
 
     # Check TOP for a 3-cell
-    if (row - 1, col) in reqCells and board.cells[row - 1][col] == 3:
+    if (row - 1, col) in board.reqCells and board.cells[row - 1][col] == 3:
         _setAdj3CellBorders(CardinalDirection.TOP, (row - 1, col))
     # Check RIGHT for a 3-cell
-    if (row, col + 1) in reqCells and board.cells[row][col + 1] == 3:
+    if (row, col + 1) in board.reqCells and board.cells[row][col + 1] == 3:
         _setAdj3CellBorders(CardinalDirection.RIGHT, (row, col + 1))
     # Check BOT for a 3-cell
-    if (row + 1, col) in reqCells and board.cells[row + 1][col] == 3:
+    if (row + 1, col) in board.reqCells and board.cells[row + 1][col] == 3:
         _setAdj3CellBorders(CardinalDirection.BOT, (row + 1, col))
     # Check LEFT for a 3-cell
-    if (row, col - 1) in reqCells and board.cells[row][col - 1] == 3:
+    if (row, col - 1) in board.reqCells and board.cells[row][col - 1] == 3:
         _setAdj3CellBorders(CardinalDirection.LEFT, (row, col - 1))
 
 
-def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int],
-                          reqCells: set[tuple[int, int]]) -> None:
+def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int]) -> None:
     """
     Check and handle the case where the given 3-cell
     has a 3-cell diagonal from it. There may be some 2-cells
@@ -103,7 +91,6 @@ def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int],
     Arguments:
         board: The board.
         cellIdx: The cell index of the 3-cell.
-        reqCells: The set of cell indices that contain a required border number.
     """
     row = cellIdx[0]
     col = cellIdx[1]
@@ -131,26 +118,25 @@ def _handleDiagonal3Cells(board: Board, cellIdx: tuple[int, int],
             _setBorder(board, bdr, BorderStatus.BLANK)
 
     # Check UL for a 3-cell
-    if hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.LRIGHT.opposite(), reqCells):
+    if hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.LRIGHT.opposite()):
         _setCorner(DiagonalDirection.LRIGHT)
     # Check UR for a 3-cell
-    if hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.LLEFT.opposite(), reqCells):
+    if hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.LLEFT.opposite()):
         _setCorner(DiagonalDirection.LLEFT)
     # Check LR for a 3-cell
-    if hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.ULEFT.opposite(), reqCells):
+    if hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.ULEFT.opposite()):
         _setCorner(DiagonalDirection.ULEFT)
     # Check LL for a 3-cell
-    if hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.URIGHT.opposite(), reqCells):
+    if hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.URIGHT.opposite()):
         _setCorner(DiagonalDirection.URIGHT)
 
 
-def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection,
-                     reqCells: set[tuple[int, int]]) -> bool:
+def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
     """
     Returns true if the given cell is a 3-cell. Will propagate the checking
     if the given cell is a 2-cell.
     """
-    if not (row, col) in reqCells:
+    if not (row, col) in board.reqCells:
         return False
 
     if board.cells[row][col] == 3:
@@ -163,7 +149,7 @@ def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection,
     if nextCellIdx is None:
         return False
 
-    return hasDiagonal3Cell(board, nextCellIdx[0], nextCellIdx[1], dxn, reqCells)
+    return hasDiagonal3Cell(board, nextCellIdx[0], nextCellIdx[1], dxn)
 
 
 def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> None:

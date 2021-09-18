@@ -25,6 +25,9 @@ class Board:
     cellGroups: list[list[OptInt]]
     """The two-dimensional array containing the group ID of each cell."""
 
+    reqCells: set[tuple[int, int]]
+    """The list of cell indices that have a border requirement."""
+
     def __init__(self, rows: int, cols: int, cells: Optional[list[list[OptInt]]] = None,
                  borders: Optional[list[BorderStatus]] = None):
         """
@@ -57,6 +60,13 @@ class Board:
             [BorderStatus.UNSET for _ in range((((cols * 2) + 1) * rows) + cols)]
 
         self.cellGroups = [[None for _ in range(cols)] for _ in range(rows)]
+
+        self.reqCells = set()
+        if cells is not None:
+            for row in range(rows):
+                for col in range(cols):
+                    if cells[row][col] is not None:
+                        self.reqCells.add((row, col))
 
     @property
     def isComplete(self) -> bool:

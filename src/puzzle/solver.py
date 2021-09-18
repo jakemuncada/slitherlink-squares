@@ -122,6 +122,8 @@ class Solver():
                     # print('Guessed by setting border {} to {}: {:.3f} seconds'.format(
                     #     guessBdrIdx, guessStatus, timeElapsed))
 
+                    isValid = isValid and self.simpleValidation(cloneBoard)
+
                     # If the guess was invalid, then the opposite move should be valid.
                     if not isValid:
                         print('Correct guess: border {} to {} [{:.3f} seconds]'.format(
@@ -227,6 +229,49 @@ class Solver():
                         foundMove = True
 
         return foundMove
+
+    def simpleValidation(self, board: Board) -> bool:
+        """
+        Validates the given board. The check is non-exhaustive and
+        only checks obviously invalid indications.
+
+        Arguments:
+            board: The board to validate.
+
+        Returns:
+            True if the board passed the simple validation. False otherwise.
+        """
+        for (row, col) in board.reqCells:
+            cellInfo = CellInfo.init(board, row, col)
+
+            # If the active borders exceeded the requirement.
+            if cellInfo.bdrActiveCount > cellInfo.reqNum:
+                return False
+
+            # If the active + unset borders cannot meet the requirement.
+            if cellInfo.bdrActiveCount + cellInfo.bdrUnsetCount < cellInfo.reqNum:
+                return False
+
+        for bdrIdx in range(len(board.borders)):
+            bdrStat = board.borders[bdrIdx]
+
+            if bdrStat == BorderStatus.ACTIVE:
+                conn = self.board.tools.getConnectedBorders(bdrIdx)
+
+                _, conn0Active, conn0Blank = self.tools.getStatusCount(board, conn[0])
+                _, conn1Active, conn1Blank = self.tools.getStatusCount(board, conn[1])
+
+                if conn0Blank == len(conn[0]):
+                    return False
+                if conn1Blank == len(conn[1]):
+                    return False
+
+                if conn0Active > 1:
+                    return False
+                if conn1Active > 1:
+                    return False
+
+        return True
 
     def updateCellGroups(self, board: Board) -> None:
         """
@@ -419,6 +464,16 @@ class Solver():
 
         if cellInfo.bdrActiveCount == 4:
             raise InvalidBoardException(f'Cell {row},{col} has 4 active borders.')
+
+        #######################################################################
+        # NOTE: For some reason, if the solver-rule below is activated,
+        #       the solving time becomes worse.
+        #
+        # if cellInfo.bdrActiveCount == 3 and cellInfo.bdrUnsetCount == 1:
+        #     for bdrIdx in cellInfo.unsetBorders:
+        #         self.setBorder(board, bdrIdx, BorderStatus.BLANK)
+        #         return True
+        #######################################################################
 
         if reqNum is not None:
 
