@@ -118,9 +118,11 @@ class Solver():
             if self.board.isComplete:
                 break
 
+        print('##################################################')
         print('Solving the board from scratch took {:.3f} seconds '
               'with {} guesses, {} of which were correct.'
               .format(time.time() - t0, currGuessNum, correctGuessCount))
+        print('##################################################')
 
     def getGuesses(self) -> list[tuple[int, BorderStatus]]:
         """
@@ -165,7 +167,10 @@ class Solver():
                 updateUI()
 
         isValid, timeElapsed = self._solve(self.board, updateUI)
-        print('Solve: {:.3f} seconds [{}]'.format(timeElapsed, isValid))
+        print('##################################################')
+        print('Solve Current Board: {:.3f} seconds [IsValid: {}]'.format(timeElapsed, isValid))
+        print('Still has {} guesses afterwards.'.format(len(self.getGuesses())))
+        print('##################################################')
 
     def _solve(self, board: Board, updateUI: Callable = None) -> tuple[bool, float]:
         """
