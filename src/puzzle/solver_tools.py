@@ -17,49 +17,6 @@ class SolverTools:
     def __init__(self) -> None:
         pass
 
-    def isCellDone(self, board: Board, row: int, col: int) -> bool:
-        """
-        Returns true if there are no more remanining `UNSET` borders in the target cell.
-        Returns false otherwise.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-        """
-        for direction in CardinalDirection:
-            status = board.getBorderStatus(row, col, direction)
-            if status == BorderStatus.UNSET:
-                return False
-        return True
-
-    def getCellBordersBoolStatus(self, board: Board, row: int, col: int, status: BorderStatus) \
-            -> tuple[bool, bool, bool, bool]:
-        """
-        Determine if the status of the four cell borders are equal to the given BorderStatus.
-
-        Arguments:
-            board: The board.
-            row: The row index of the target cell.
-            col: The column index of the target cell.
-            status: The query status.
-
-        Returns:
-            A 4-tuple of boolean values corresponding to the four border directions:
-            `TOP`, `RIGHT`, `BOT`, and `LEFT`.
-        """
-        bdrIdxTop = board.tools.getBorderIdx(row, col, CardinalDirection.TOP)
-        bdrIdxRight = board.tools.getBorderIdx(row, col, CardinalDirection.RIGHT)
-        bdrIdxBot = board.tools.getBorderIdx(row, col, CardinalDirection.BOT)
-        bdrIdxLeft = board.tools.getBorderIdx(row, col, CardinalDirection.LEFT)
-
-        topStatus = board.borders[bdrIdxTop] == status
-        rightStatus = board.borders[bdrIdxRight] == status
-        botStatus = board.borders[bdrIdxBot] == status
-        leftStatus = board.borders[bdrIdxLeft] == status
-
-        return (topStatus, rightStatus, botStatus, leftStatus)
-
     def getStatusCount(self, board: Board, bdrIdxList: Union[list[int], set[int], tuple]) \
             -> tuple[int, int, int]:
         """
@@ -84,36 +41,6 @@ class SolverTools:
             elif board.borders[idx] == BorderStatus.BLANK:
                 countBlank += 1
         return (countUnset, countActive, countBlank)
-
-    def countUnset(self, board: Board, bdrIdxList: list[int]) -> int:
-        """
-        Returns the number of `UNSET` borders in the given list.
-        """
-        count = 0
-        for idx in bdrIdxList:
-            if board.borders[idx] == BorderStatus.UNSET:
-                count += 1
-        return count
-
-    def countActive(self, board: Board, bdrIdxList: list[int]) -> int:
-        """
-        Returns the number of `ACTIVE` borders in the given list.
-        """
-        count = 0
-        for idx in bdrIdxList:
-            if board.borders[idx] == BorderStatus.ACTIVE:
-                count += 1
-        return count
-
-    def countBlank(self, board: Board, bdrIdxList: list[int]) -> int:
-        """
-        Returns the number of `BLANK` borders in the given list.
-        """
-        count = 0
-        for idx in bdrIdxList:
-            if board.borders[idx] == BorderStatus.BLANK:
-                count += 1
-        return count
 
     def isAdjCellReqNumEqualTo(self, board: Board, row: int, col: int,
                                dxn: CardinalDirection, query: OptInt) -> bool:
