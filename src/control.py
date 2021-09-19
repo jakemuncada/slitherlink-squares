@@ -41,6 +41,7 @@ class Control:
             self.event_loop()
             while lag >= TIME_PER_UPDATE:
                 lag -= TIME_PER_UPDATE
+                self.renderer.draw()
 
     def event_loop(self) -> None:
         """
@@ -54,6 +55,7 @@ class Control:
                 self.handleKeyDown(pg.key.get_pressed())
                 self.renderer.draw()
                 print('Time from keypress to draw: {:.3f}'.format(time.time() - t0))
+                self.renderer.draw()
             elif event.type == pg.MOUSEBUTTONDOWN:
                 mouseX, mouseY = pg.mouse.get_pos()
                 closestCell = self.renderer.getClosestCell(Point((mouseX, mouseY)))
@@ -101,5 +103,7 @@ class Control:
         Arguments:
             borderIdx: The index of the clicked border.
         """
-        print(f'Clicked cell {cellIdx}: {[str(x) for x in self.solver.cornerEntry[cellIdx[0]][cellIdx[1]]]}')
+        if cellIdx is not None:
+            print(f'Clicked cell {cellIdx}.')
+            print(f'{[str(x) for x in self.solver.cornerEntry[cellIdx[0]][cellIdx[1]]]}')
         self.renderer.draw()
