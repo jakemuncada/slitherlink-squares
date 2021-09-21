@@ -15,10 +15,8 @@ class SolverTools:
     Class containing functions to help in solving the board.
     """
 
-    def __init__(self) -> None:
-        pass
-
-    def getStatusCount(self, board: Board, bdrIdxList: Union[list[int], set[int], tuple]) \
+    @staticmethod
+    def getStatusCount(board: Board, bdrIdxList: Union[list[int], set[int], tuple]) \
             -> tuple[int, int, int]:
         """
         Returns the number of `UNSET`, `ACTIVE` and `BLANK` borders
@@ -43,7 +41,8 @@ class SolverTools:
                 countBlank += 1
         return (countUnset, countActive, countBlank)
 
-    def isAdjCellReqNumEqualTo(self, board: Board, row: int, col: int,
+    @staticmethod
+    def isAdjCellReqNumEqualTo(board: Board, row: int, col: int,
                                dxn: CardinalDirection, query: OptInt) -> bool:
         """
         Get the cell index of the adjacent cell and return true
@@ -64,7 +63,8 @@ class SolverTools:
             return False
         return board.cells[adjRow][adjCol] == query
 
-    def isContinuous(self, board: Board, borderIdx1: int, borderIdx2: int) -> bool:
+    @staticmethod
+    def isContinuous(board: Board, borderIdx1: int, borderIdx2: int) -> bool:
         """
         Returns true if the two borders are continuous. Returns false otherwise.
         Borders are continuous if all of the conditions below are true:
@@ -106,7 +106,8 @@ class SolverTools:
         # If all of the above conditions are true, return True.
         return True
 
-    def getDirectionsCellIsPokingAt(self, board: Board, row: int, col: int) \
+    @staticmethod
+    def getDirectionsCellIsPokingAt(board: Board, row: int, col: int) \
             -> list[DiagonalDirection]:
         """
         Returns a list of corner directions where the given cell is poking at.
@@ -120,7 +121,7 @@ class SolverTools:
 
         reqNum = board.cells[row][col]
         borders = BoardTools.getCellBorders(row, col)
-        _, countActive, countBlank = self.getStatusCount(board, borders)
+        _, countActive, countBlank = SolverTools.getStatusCount(board, borders)
 
         if reqNum == 3 and countActive > 1:
             for dxn in DiagonalDirection:
@@ -149,7 +150,8 @@ class SolverTools:
 
         return list(pokeDirs)
 
-    def isCellIndirectPokedByPropagation(self, board: Board, currCellIdx: tuple[int, int],
+    @staticmethod
+    def isCellIndirectPokedByPropagation(board: Board, currCellIdx: tuple[int, int],
                                          dxn: DiagonalDirection) -> bool:
         """
         Check if a cell is being indirectly poked by propagation.
@@ -176,7 +178,7 @@ class SolverTools:
             return True
 
         cornerBdrs = BoardTools.getCornerBorderIndices(currRow, currCol, dxn.opposite())
-        _, countActive, _ = self.getStatusCount(board, cornerBdrs)
+        _, countActive, _ = SolverTools.getStatusCount(board, cornerBdrs)
 
         if countActive > 1:
             raise InvalidBoardException('Checking for INDIRECT poking, but found '
@@ -189,9 +191,10 @@ class SolverTools:
             return False
 
         nextCellIdx = BoardTools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
-        return self.isCellIndirectPokedByPropagation(board, nextCellIdx, dxn)
+        return SolverTools.isCellIndirectPokedByPropagation(board, nextCellIdx, dxn)
 
-    def getContinuousUnsetBordersOfCell(self, board: Board, cellInfo: CellInfo) -> list[list[int]]:
+    @staticmethod
+    def getContinuousUnsetBordersOfCell(board: Board, cellInfo: CellInfo) -> list[list[int]]:
         """
         Returns the `UNSET` borders of a cell who are continuous with each other.
 
@@ -213,46 +216,46 @@ class SolverTools:
 
         # TOP-RIGHT-BOT
         if isTopUnset and isRightUnset and isBotUnset:
-            if self.isContinuous(board, topBdr, rightBdr) and \
-                    self.isContinuous(board, rightBdr, botBdr):
+            if SolverTools.isContinuous(board, topBdr, rightBdr) and \
+                    SolverTools.isContinuous(board, rightBdr, botBdr):
                 return [[topBdr, rightBdr, botBdr]]
 
         # RIGHT-BOT-LEFT
         if isRightUnset and isBotUnset and isLeftUnset:
-            if self.isContinuous(board, rightBdr, botBdr) and \
-                    self.isContinuous(board, botBdr, leftBdr):
+            if SolverTools.isContinuous(board, rightBdr, botBdr) and \
+                    SolverTools.isContinuous(board, botBdr, leftBdr):
                 return [[rightBdr, botBdr, leftBdr]]
 
         # BOT-LEFT-TOP
         if isBotUnset and isLeftUnset and isTopUnset:
-            if self.isContinuous(board, botBdr, leftBdr) and \
-                    self.isContinuous(board, leftBdr, topBdr):
+            if SolverTools.isContinuous(board, botBdr, leftBdr) and \
+                    SolverTools.isContinuous(board, leftBdr, topBdr):
                 return [[botBdr, leftBdr, topBdr]]
 
         # LEFT-TOP-RIGHT
         if isLeftUnset and isTopUnset and isRightUnset:
-            if self.isContinuous(board, leftBdr, topBdr) and \
-                    self.isContinuous(board, topBdr, rightBdr):
+            if SolverTools.isContinuous(board, leftBdr, topBdr) and \
+                    SolverTools.isContinuous(board, topBdr, rightBdr):
                 return [[leftBdr, topBdr, rightBdr]]
 
         # TOP-RIGHT
         if isTopUnset and isRightUnset:
-            if self.isContinuous(board, topBdr, rightBdr):
+            if SolverTools.isContinuous(board, topBdr, rightBdr):
                 result.append([topBdr, rightBdr])
 
         # RIGHT-BOT
         if isRightUnset and isBotUnset:
-            if self.isContinuous(board, rightBdr, botBdr):
+            if SolverTools.isContinuous(board, rightBdr, botBdr):
                 result.append([rightBdr, botBdr])
 
         # BOT-LEFT
         if isBotUnset and isLeftUnset:
-            if self.isContinuous(board, botBdr, leftBdr):
+            if SolverTools.isContinuous(board, botBdr, leftBdr):
                 result.append([botBdr, leftBdr])
 
         # LEFT-TOP
         if isLeftUnset and isTopUnset:
-            if self.isContinuous(board, leftBdr, topBdr):
+            if SolverTools.isContinuous(board, leftBdr, topBdr):
                 result.append([leftBdr, topBdr])
 
         return result

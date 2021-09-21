@@ -26,7 +26,6 @@ class Solver():
         self.rows = board.rows
         self.cols = board.cols
         self.board = board
-        self.tools = SolverTools()
         self.initialized = False
         self.cornerEntry: list[list[list[CornerEntry]]]
         self.prioCells: list[tuple[int, int]] = []
@@ -292,8 +291,8 @@ class Solver():
             if bdrStat == BorderStatus.ACTIVE:
                 conn = BoardTools.getConnectedBorders(bdrIdx)
 
-                _, conn0Active, conn0Blank = self.tools.getStatusCount(board, conn[0])
-                _, conn1Active, conn1Blank = self.tools.getStatusCount(board, conn[1])
+                _, conn0Active, conn0Blank = SolverTools.getStatusCount(board, conn[0])
+                _, conn1Active, conn1Blank = SolverTools.getStatusCount(board, conn[1])
 
                 if conn0Blank == len(conn[0]):
                     return False
@@ -371,7 +370,7 @@ class Solver():
             cellInfo = CellInfo.init(board, row, col)
 
             borderIndices = BoardTools.getCellBorders(row, col)
-            countUnset, _, _ = self.tools.getStatusCount(board, borderIndices)
+            countUnset, _, _ = SolverTools.getStatusCount(board, borderIndices)
 
             if countUnset == 0:
                 continue
@@ -589,7 +588,7 @@ class Solver():
                 bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn.opposite())
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                     currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
-                    if self.tools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
+                    if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
                         bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
                         Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE)
                         Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE)
@@ -601,13 +600,13 @@ class Solver():
                 if (bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.BLANK) or \
                         (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.UNSET):
                     currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
-                    if self.tools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
+                    if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
                         if self.handleCellPoke(board, row, col, dxn):
                             return True
 
         # Check every cell if it is poking a diagonally adjacent cell.
         if not foundMove:
-            pokeDirs = self.tools.getDirectionsCellIsPokingAt(board, row, col)
+            pokeDirs = SolverTools.getDirectionsCellIsPokingAt(board, row, col)
             for pokeDxn in pokeDirs:
                 foundMove = foundMove | self.initiatePoke(board, row, col, pokeDxn)
 
@@ -692,10 +691,10 @@ class Solver():
         row = cellInfo.row
         col = cellInfo.col
 
-        isTop3Cell = self.tools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.TOP, 3)
-        isRight3Cell = self.tools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.RIGHT, 3)
-        isBot3Cell = self.tools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.BOT, 3)
-        isLeft3Cell = self.tools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.LEFT, 3)
+        isTop3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.TOP, 3)
+        isRight3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.RIGHT, 3)
+        isBot3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.BOT, 3)
+        isLeft3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.LEFT, 3)
 
         if all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerUL):
             if isBot3Cell:
@@ -802,7 +801,7 @@ class Solver():
         if cellInfo.reqNum is None:
             return False
 
-        contUnsetBdrs = self.tools.getContinuousUnsetBordersOfCell(board, cellInfo)
+        contUnsetBdrs = SolverTools.getContinuousUnsetBordersOfCell(board, cellInfo)
 
         if len(contUnsetBdrs) == 0:
             return False
@@ -870,15 +869,15 @@ class Solver():
 
             connBdrList = BoardTools.getConnectedBordersList(borderIdx)
             for connBdrIdx in connBdrList:
-                if self.tools.isContinuous(board, borderIdx, connBdrIdx):
+                if SolverTools.isContinuous(board, borderIdx, connBdrIdx):
                     if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
                         if Solver.setBorder(board, borderIdx, BorderStatus.ACTIVE):
                             return True
 
             connBdrTuple = BoardTools.getConnectedBorders(borderIdx)
 
-            _, countActive1, countBlank1 = self.tools.getStatusCount(board, connBdrTuple[0])
-            _, countActive2, countBlank2 = self.tools.getStatusCount(board, connBdrTuple[1])
+            _, countActive1, countBlank1 = SolverTools.getStatusCount(board, connBdrTuple[0])
+            _, countActive2, countBlank2 = SolverTools.getStatusCount(board, connBdrTuple[1])
 
             if countActive1 > 1 or countActive2 > 1:
                 if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
@@ -1001,7 +1000,7 @@ class Solver():
             # Check if there is an active arm from the poke direction.
             # If there is, remove the other arms from that corner.
             arms = BoardTools.getArms(row, col, dxn)
-            countUnset, countActive, _ = self.tools.getStatusCount(board, arms)
+            countUnset, countActive, _ = SolverTools.getStatusCount(board, arms)
 
             # The board is invalid if the number of active arms is more than 1
             if countActive > 1:
@@ -1032,7 +1031,7 @@ class Solver():
                 otherArms.extend(BoardTools.getArms(row, col, otherDxn))
 
             # Count the UNSET and ACTIVE arms from all those other arms.
-            countUnset, countActive, _ = self.tools.getStatusCount(board, otherArms)
+            countUnset, countActive, _ = SolverTools.getStatusCount(board, otherArms)
 
             # If there is only one remaining UNSET arm, set it accordingly.
             if countUnset == 1:
@@ -1164,16 +1163,16 @@ class Solver():
 
         # INVALID: If one corner has 2 active arms and the opposite corner has at least 1 active arm.
 
-        _, activeCount1, _ = self.tools.getStatusCount(board, armsUL)
-        _, activeCount2, _ = self.tools.getStatusCount(board, armsLR)
+        _, activeCount1, _ = SolverTools.getStatusCount(board, armsUL)
+        _, activeCount2, _ = SolverTools.getStatusCount(board, armsLR)
         if activeCount1 == 1 and activeCount2 == 1:
             for bdrIdx in armsUL + armsLR:
                 if board.borders[bdrIdx] == BorderStatus.UNSET:
                     Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
                     foundMove = True
 
-        _, activeCount1, _ = self.tools.getStatusCount(board, armsUR)
-        _, activeCount2, _ = self.tools.getStatusCount(board, armsLL)
+        _, activeCount1, _ = SolverTools.getStatusCount(board, armsUR)
+        _, activeCount2, _ = SolverTools.getStatusCount(board, armsLL)
         if activeCount1 == 1 and activeCount2 == 1:
             for bdrIdx in armsUR + armsLL:
                 if board.borders[bdrIdx] == BorderStatus.UNSET:
@@ -1211,7 +1210,7 @@ class Solver():
                     countUnknown = 0
                     for dxn in DiagonalDirection:
                         arms = BoardTools.getArms(row, col, dxn)
-                        countUnset, countActive, _ = self.tools.getStatusCount(self.board, arms)
+                        countUnset, countActive, _ = SolverTools.getStatusCount(self.board, arms)
 
                         if countUnset == 0:
                             targetCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
