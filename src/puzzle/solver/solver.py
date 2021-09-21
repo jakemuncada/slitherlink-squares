@@ -1057,25 +1057,3 @@ class Solver():
                                 foundMove = True
         return foundMove
 
-    @ cache
-    def getDiagAdj2Cells(self, row: int, col: int) \
-            -> dict[DiagonalDirection, Optional[tuple[int, int]]]:
-        """
-        Get the target cell's diagonally adjacent 2-cells.
-
-        Arguments:
-            row: The row index of the cell.
-            col: The column index of the cell.
-
-        Returns:
-            A dictionary with DiagonalDirections as keys.
-            The values will be a list of the adjacent 2-cell's cell index.
-        """
-        adj2Cells: dict[DiagonalDirection, Optional[tuple[int, int]]] = {}
-        for dxn in DiagonalDirection:
-            cellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
-            if cellIdx is not None and self.board.cells[cellIdx[0]][cellIdx[1]] == 2:
-                adj2Cells[dxn] = (cellIdx[0], cellIdx[1])
-            else:
-                adj2Cells[dxn] = None
-        return adj2Cells
