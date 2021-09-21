@@ -114,10 +114,10 @@ class CellInfo:
         """
         Get the arms at each corner direction and save it for future use.
         """
-        self.armsTuple = BoardTools.getArmsOfCell(self.row, self.col)
-        self.armsUL = self.armsTuple[0]
-        self.armsUR = self.armsTuple[1]
-        self.armsLR = self.armsTuple[2]
-        self.armsLL = self.armsTuple[3]
-
-        return self.bdrStats
+        if self.armsTuple[0] is not None:
+            self.armsTuple = BoardTools.getArmsOfCell(self.row, self.col)
+            self.armsUL = self.armsTuple[0]
+            self.armsUR = self.armsTuple[1]
+            self.armsLR = self.armsTuple[2]
+            self.armsLL = self.armsTuple[3]
+        return self.armsTuple

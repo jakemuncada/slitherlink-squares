@@ -2,6 +2,7 @@
 Solver for Slitherlink-Squares.
 """
 
+
 import time
 import random
 from functools import cache
@@ -30,6 +31,11 @@ class Solver():
         self.cornerEntry: list[list[list[CornerEntry]]]
         self.prioCells: list[tuple[int, int]] = []
         self.initializePrioritizedCellList()
+        self.initializeSubmoduleMethods()
+
+    def initializeSubmoduleMethods(self) -> None:
+        from src.puzzle.solver.sub.cont_unset import checkCellForContinuousUnsetBorders
+        self.checkCellForContinuousUnsetBorders = checkCellForContinuousUnsetBorders
 
     def initializePrioritizedCellList(self) -> None:
         """
@@ -75,13 +81,28 @@ class Solver():
             raise InvalidBoardException
         return False
 
+    def resetCornerEntry(self) -> None:
+        """
+        Reset the corner entry information.
+        """
+        self.cornerEntry = [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN,
+                              CornerEntry.UNKNOWN, ] for _ in range(self.cols)] for _ in range(self.rows)]
+
+    def solveInitial(self) -> None:
+        """
+        Solve the initial clues.
+        """
+        self.board.reset()
+        self.resetCornerEntry()
+        solveInit(self.board)
+        self.initialized = True
+
     def solveBoardFromScratch(self, updateUI: Callable) -> None:
         """
         Solve board from scratch.
         """
         self.board.reset()
-        self.cornerEntry = [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN,
-                              CornerEntry.UNKNOWN, ] for _ in range(self.cols)] for _ in range(self.rows)]
+        self.resetCornerEntry()
 
         t0 = time.time()
 
@@ -188,8 +209,7 @@ class Solver():
         """
         Solve the board starting from its current state.
         """
-        self.cornerEntry = [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN,
-                              CornerEntry.UNKNOWN, ] for _ in range(self.cols)] for _ in range(self.rows)]
+        self.resetCornerEntry()
 
         if not self.initialized:
             solveInit(self.board)
@@ -611,7 +631,7 @@ class Solver():
                 foundMove = foundMove | self.initiatePoke(board, row, col, pokeDxn)
 
         if not foundMove:
-            foundMove = self.checkCellForContinuousUnsetBorders(board, cellInfo)
+            foundMove = self.checkCellForContinuousUnsetBorders(self, board, cellInfo)
 
         return foundMove
 
@@ -777,85 +797,6 @@ class Solver():
                 foundMove = foundMove | self.handleCellPoke(board, row, col - 1, DiagonalDirection.LRIGHT)
             if col < self.cols - 1:
                 foundMove = foundMove | self.handleCellPoke(board, row, col + 1, DiagonalDirection.LLEFT)
-
-        return foundMove
-
-    def checkCellForContinuousUnsetBorders(self, board: Board, cellInfo: CellInfo) -> bool:
-        """
-        Check the borders of the cell if it has continuous unset borders.
-
-        Arguments:
-            board: The board.
-            cellInfo: The cell information.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        foundMove = False
-        row = cellInfo.row
-        col = cellInfo.col
-
-        if cellInfo.bdrUnsetCount < 2:
-            return False
-
-        if cellInfo.reqNum is None:
-            return False
-
-        contUnsetBdrs = SolverTools.getContinuousUnsetBordersOfCell(board, cellInfo)
-
-        if len(contUnsetBdrs) == 0:
-            return False
-
-        # If a 1-cell has continuous unset borders, they should be set to BLANK.
-        if cellInfo.reqNum == 1:
-            for bdrSet in contUnsetBdrs:
-                for bdrIdx in bdrSet:
-                    Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
-                    foundMove = True
-
-        # If a 3-cell has continuous unset borders, they should be set to ACTIVE.
-        if cellInfo.reqNum == 3:
-            for bdrSet in contUnsetBdrs:
-                for bdrIdx in bdrSet:
-                    Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE)
-                    foundMove = True
-
-        # If a 2-cell has continuous unset borders
-        if cellInfo.reqNum == 2:
-            # The board is invalid if the continuous border has a length of 3
-            if len(contUnsetBdrs[0]) != 2:
-                raise InvalidBoardException(f'The 2-cell {row},{col} '
-                                            'must not have continous unset borders '
-                                            'having length of 3 or more.')
-
-            # If the 2-cell has continuos UNSET borders and also has at least one BLANK border,
-            # then the continuous UNSET borders should be activated.
-            if cellInfo.bdrBlankCount > 0:
-                for bdrIdx in contUnsetBdrs[0]:
-                    if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
-                        foundMove = True
-                for bdrIdx in cellInfo.bdrIndices:
-                    if bdrIdx not in contUnsetBdrs[0]:
-                        if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
-                            foundMove = True
-            else:
-                topBdr, rightBdr, botBdr, leftBdr = cellInfo.bdrIndices
-
-                # Smooth UL corner
-                if topBdr in contUnsetBdrs[0] and leftBdr in contUnsetBdrs[0]:
-                    smoothDirs = (DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT)
-                # Smooth UR corner
-                elif topBdr in contUnsetBdrs[0] and rightBdr in contUnsetBdrs[0]:
-                    smoothDirs = (DiagonalDirection.URIGHT, DiagonalDirection.LLEFT)
-                # Smooth LR corner
-                elif botBdr in contUnsetBdrs[0] and rightBdr in contUnsetBdrs[0]:
-                    smoothDirs = (DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT)
-                # Smooth LL corner
-                elif botBdr in contUnsetBdrs[0] and leftBdr in contUnsetBdrs[0]:
-                    smoothDirs = (DiagonalDirection.URIGHT, DiagonalDirection.LLEFT)
-
-                for smoothDir in smoothDirs:
-                    foundMove = foundMove | self.handleSmoothCorner(board, cellInfo, smoothDir)
 
         return foundMove
 
