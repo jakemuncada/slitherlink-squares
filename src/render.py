@@ -149,29 +149,33 @@ class Renderer:
         Draw the `BLANK` and `ACTIVE` borders of the board.
         """
         self.borderSurface.fill(COLORKEY)
+        doneBorders: set[int] = set()
 
         def _drawBorder(row, col, direction):
-            status = self.board.getBorderStatus(row, col, direction)
-            if status in (BorderStatus.ACTIVE, BorderStatus.BLANK):
-                if direction == CardinalDirection.TOP:
-                    v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
-                    v2 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
-                elif direction == CardinalDirection.RIGHT:
-                    v1 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
-                    v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
-                elif direction == CardinalDirection.BOT:
-                    v1 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
-                    v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
-                elif direction == CardinalDirection.LEFT:
-                    v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
-                    v2 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
-                else:
-                    raise ValueError(f'Invalid direction: {direction}')
+            bdrIdx = self.board.tools.getBorderIdx(row, col, direction)
+            if bdrIdx not in doneBorders:
+                doneBorders.add(bdrIdx)
+                status = self.board.borders[bdrIdx]
+                if status in (BorderStatus.ACTIVE, BorderStatus.BLANK):
+                    if direction == CardinalDirection.TOP:
+                        v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
+                        v2 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
+                    elif direction == CardinalDirection.RIGHT:
+                        v1 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
+                        v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
+                    elif direction == CardinalDirection.BOT:
+                        v1 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
+                        v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
+                    elif direction == CardinalDirection.LEFT:
+                        v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
+                        v2 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
+                    else:
+                        raise ValueError(f'Invalid direction: {direction}')
 
-                if status == BorderStatus.ACTIVE:
-                    pg.draw.line(self.borderSurface, (255, 30, 30), v1, v2, BORDER_ACTIVE_THICKNESS)
-                else:
-                    pg.draw.line(self.borderSurface, BG_COLOR, v1, v2, BORDER_ACTIVE_THICKNESS)
+                    if status == BorderStatus.ACTIVE:
+                        pg.draw.line(self.borderSurface, (255, 30, 30), v1, v2, BORDER_ACTIVE_THICKNESS)
+                    else:
+                        pg.draw.line(self.borderSurface, BG_COLOR, v1, v2, BORDER_ACTIVE_THICKNESS)
 
         for i in range(self.board.rows):
             for j in range(self.board.cols):
