@@ -8,28 +8,9 @@ from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection,
 
 
 class Board:
-    """The game board."""
-
-    rows: int = 0
-    """The number of rows of the board."""
-
-    cols: int = 0
-    """The number of columns of the board."""
-
-    isClone: bool = False
-    """True if the board is a clone. False otherwise."""
-
-    cells: list[list[OptInt]] = [[]]
-    """The two-dimensional array containing the required sides of each cell."""
-
-    borders: list[BorderStatus] = []
-    """The array containing the status of each border."""
-
-    cellGroups: list[list[OptInt]]
-    """The two-dimensional array containing the group ID of each cell."""
-
-    reqCells: set[tuple[int, int]]
-    """The list of cell indices that have a border requirement."""
+    """
+    The game board.
+    """
 
     def __init__(self, rows: int, cols: int, cells: Optional[list[list[OptInt]]] = None,
                  borders: Optional[list[BorderStatus]] = None):
@@ -38,7 +19,7 @@ class Board:
 
         Args:
             rows: The number of rows of the board. Must be a positive number.
-            rows:  The number of columns of the board. Must be a positive number.
+            cols:  The number of columns of the board. Must be a positive number.
             cells: A two-dimensional array containing the required sides of each cell.
             borders: A two-dimensional array containing the status of each border.
         """
@@ -54,6 +35,7 @@ class Board:
 
         self.rows = rows
         self.cols = cols
+        self.isClone = False
         self.tools = BoardTools(rows, cols)
 
         self.cells = cells if cells is not None else \
