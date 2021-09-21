@@ -135,40 +135,16 @@ class Board:
     # BORDER STATUS SETTERS
     ##################################################
 
-    def toggleBorder(self, borderIdx) -> None:
+    def toggleBorder(self, borderIdx: int) -> None:
         """
         Toggle the target border's status.
         """
         if self.borders[borderIdx] == BorderStatus.UNSET:
-            self.setBorderToActive(borderIdx)
+            self.borders[borderIdx] = BorderStatus.ACTIVE
         elif self.borders[borderIdx] == BorderStatus.ACTIVE:
-            self.setBorderToBlank(borderIdx)
+            self.borders[borderIdx] = BorderStatus.BLANK
         elif self.borders[borderIdx] == BorderStatus.BLANK:
-            self.setBorderToUnset(borderIdx)
-
-    def setBorderStatus(self, borderIdx: int, newStatus: BorderStatus) -> None:
-        """
-        Set the target border to a new status.
-        """
-        self.borders[borderIdx] = newStatus
-
-    def setBorderToUnset(self, borderIdx: int) -> None:
-        """
-        Set the target border's status to `UNSET`.
-        """
-        self.borders[borderIdx] = BorderStatus.UNSET
-
-    def setBorderToActive(self, borderIdx: int) -> None:
-        """
-        Set the target border's status to `ACTIVE`.
-        """
-        self.borders[borderIdx] = BorderStatus.ACTIVE
-
-    def setBorderToBlank(self, borderIdx: int) -> None:
-        """
-        Set the target border's status to `BLANK`.
-        """
-        self.borders[borderIdx] = BorderStatus.BLANK
+            self.borders[borderIdx] = BorderStatus.UNSET
 
     ##################################################
     # GET BORDERS

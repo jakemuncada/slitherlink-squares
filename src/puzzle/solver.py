@@ -235,7 +235,7 @@ class Solver():
             False if the border was already in that status.
         """
         if board.borders[borderIdx] == BorderStatus.UNSET:
-            board.setBorderStatus(borderIdx, newStatus)
+            board.borders[borderIdx] = newStatus
             return True
         elif board.borders[borderIdx] != newStatus:
             raise InvalidBoardException

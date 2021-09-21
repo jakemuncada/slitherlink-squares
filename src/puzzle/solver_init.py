@@ -166,4 +166,4 @@ def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> None:
     if board.borders[borderIdx] == newStatus:
         pass
     elif board.borders[borderIdx] == BorderStatus.UNSET:
-        board.setBorderStatus(borderIdx, newStatus)
+        board.borders[borderIdx] = newStatus
