@@ -5,6 +5,7 @@ Solver for Slitherlink-Squares.
 
 import time
 import random
+import cProfile as profile
 from functools import cache
 from typing import Optional, Callable
 
@@ -97,7 +98,13 @@ class Solver():
         solveInit(self.board)
         self.initialized = True
 
-    def solveBoardFromScratch(self, updateUI: Callable) -> None:
+    def profileFromScratch(self) -> None:
+        profile.runctx('self.solveBoardFromScratch()', globals(), locals())
+
+    def profileCurrentBoard(self) -> None:
+        profile.runctx('self.solveCurrentBoard()', globals(), locals())
+
+    def solveBoardFromScratch(self, updateUI: Callable = None) -> None:
         """
         Solve board from scratch.
         """
@@ -205,7 +212,7 @@ class Solver():
 
         return highPrio + lowPrio
 
-    def solveCurrentBoard(self, updateUI: Callable) -> None:
+    def solveCurrentBoard(self, updateUI: Callable = None) -> None:
         """
         Solve the board starting from its current state.
         """
