@@ -84,7 +84,7 @@ def _process1Cell(board: Board, solver: Solver, cellInfo: CellInfo, \
         if cornersStatus[dxn]:
             # Smooth this corner and poke the opposite corner.
             solver.handleSmoothCorner(board, cellInfo, dxn)
-            solver.initiatePoke(board, cellInfo.row, cellInfo.col, dxn.opposite())
+            solver.initiatePoke(solver, board, cellInfo.row, cellInfo.col, dxn.opposite())
 
             # If the 1-cell has continuous borders, set them to BLANK.
             Solver.setBorder(board, corners[dxn][0], BorderStatus.BLANK)
@@ -159,7 +159,7 @@ def _process3Cell(board: Board, solver: Solver, cellInfo: CellInfo, \
 
             # Smooth this corner and poke the opposite corner.
             solver.handleSmoothCorner(board, cellInfo, dxn)
-            solver.initiatePoke(board, cellInfo.row, cellInfo.col, dxn.opposite())
+            solver.initiatePoke(solver, board, cellInfo.row, cellInfo.col, dxn.opposite())
 
             # Return true because we know we have changed an UNSET border to ACTIVE.
             foundMove = True

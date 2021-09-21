@@ -2,7 +2,6 @@
 Solver for Slitherlink-Squares.
 """
 
-
 import time
 import random
 import cProfile as profile
@@ -35,8 +34,13 @@ class Solver():
         self.initializeSubmoduleMethods()
 
     def initializeSubmoduleMethods(self) -> None:
+        from src.puzzle.solver.sub.poke import initiatePoke
+        from src.puzzle.solver.sub.poke import handleCellPoke
         from src.puzzle.solver.sub.cont_unset import checkCellForContinuousUnsetBorders
-        self.checkCellForContinuousUnsetBorders = checkCellForContinuousUnsetBorders
+    
+        self.initiatePoke = initiatePoke
+        self.handleCellPoke = handleCellPoke
+        self.checkCellForContinuousUnsetBorders = checkCellForContinuousUnsetBorders    
 
     def initializePrioritizedCellList(self) -> None:
         """
@@ -434,7 +438,7 @@ class Solver():
                 if (grpTop == grpBot and grpTop is not None) or \
                         (grpLeft == grpRight and grpLeft is not None):
                     for dxn in DiagonalDirection:
-                        _found = _found | self.initiatePoke(board, row, col, dxn)
+                        _found = _found | self.initiatePoke(self, board, row, col, dxn)
 
             elif cellInfo.reqNum == 3:
                 if grpTop == grpBot and grpTop is not None:
@@ -477,7 +481,7 @@ class Solver():
                         if grp1 == grp2:
                             foundMove = foundMove | self.handleSmoothCorner(board, cellInfo, dxn)
                         else:
-                            foundMove = foundMove | self.initiatePoke(board, row, col, dxn)
+                            foundMove = foundMove | self.initiatePoke(self, board, row, col, dxn)
 
         return foundMove
 
@@ -593,7 +597,7 @@ class Solver():
                 for dxn in DiagonalDirection:
                     armsStatus = board.getArmsStatus(row, col, dxn)
                     if any(status == BorderStatus.ACTIVE for status in armsStatus):
-                        foundMove = foundMove | self.handleCellPoke(board, row, col, dxn)
+                        foundMove = foundMove | self.handleCellPoke(self, board, row, col, dxn)
 
                 foundMove = foundMove | self.checkThreeTwoThreeTwoPattern(board, cellInfo)
 
@@ -628,14 +632,14 @@ class Solver():
                         (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.UNSET):
                     currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
                     if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
-                        if self.handleCellPoke(board, row, col, dxn):
+                        if self.handleCellPoke(self, board, row, col, dxn):
                             return True
 
         # Check every cell if it is poking a diagonally adjacent cell.
         if not foundMove:
             pokeDirs = SolverTools.getDirectionsCellIsPokingAt(board, row, col)
             for pokeDxn in pokeDirs:
-                foundMove = foundMove | self.initiatePoke(board, row, col, pokeDxn)
+                foundMove = foundMove | self.initiatePoke(self, board, row, col, pokeDxn)
 
         if not foundMove:
             foundMove = self.checkCellForContinuousUnsetBorders(self, board, cellInfo)
@@ -687,13 +691,13 @@ class Solver():
 
         if row + 1 < rows and col + 1 < cols and board.cells[row + 1][col + 1] == 3:
             if board.cells[row][col + 1] == 2 and board.cells[row + 1][col] == 2:
-                found = found | self.initiatePoke(board, row, col + 1, DiagonalDirection.URIGHT)
-                found = found | self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT)
+                found = found | self.initiatePoke(self, board, row, col + 1, DiagonalDirection.URIGHT)
+                found = found | self.initiatePoke(self, board, row + 1, col, DiagonalDirection.LLEFT)
 
         elif row + 1 < rows and col - 1 >= 0 and board.cells[row + 1][col - 1] == 3:
             if board.cells[row][col - 1] == 2 and board.cells[row + 1][col] == 2:
-                found = found | self.initiatePoke(board, row, col - 1, DiagonalDirection.URIGHT)
-                found = found | self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT)
+                found = found | self.initiatePoke(self, board, row, col - 1, DiagonalDirection.URIGHT)
+                found = found | self.initiatePoke(self, board, row + 1, col, DiagonalDirection.LLEFT)
 
         return found
 
@@ -780,30 +784,30 @@ class Solver():
         # If the cell is a topmost cell, check if its TOP border is active.
         if row == 0 and cellInfo.topBdr == BorderStatus.ACTIVE:
             if col > 0:
-                foundMove = foundMove | self.handleCellPoke(board, row, col - 1, DiagonalDirection.URIGHT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row, col - 1, DiagonalDirection.URIGHT)
             if col < self.cols - 1:
-                foundMove = foundMove | self.handleCellPoke(board, row, col + 1, DiagonalDirection.ULEFT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row, col + 1, DiagonalDirection.ULEFT)
 
         # If the cell is a leftmost cell, check if its LEFT border is active.
         if col == 0 and cellInfo.leftBdr == BorderStatus.ACTIVE:
             if row > 0:
-                foundMove = foundMove | self.handleCellPoke(board, row - 1, col, DiagonalDirection.LLEFT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row - 1, col, DiagonalDirection.LLEFT)
             if row < self.rows - 1:
-                foundMove = foundMove | self.handleCellPoke(board, row + 1, col, DiagonalDirection.ULEFT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row + 1, col, DiagonalDirection.ULEFT)
 
         # If the cell is a rightmost cell, check if its RIGHT border is active.
         if col == self.cols - 1 and cellInfo.rightBdr == BorderStatus.ACTIVE:
             if row > 0:
-                foundMove = foundMove | self.handleCellPoke(board, row - 1, col, DiagonalDirection.LRIGHT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row - 1, col, DiagonalDirection.LRIGHT)
             if row < self.rows - 1:
-                foundMove = foundMove | self.handleCellPoke(board, row + 1, col, DiagonalDirection.URIGHT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row + 1, col, DiagonalDirection.URIGHT)
 
         # If the cell is a bottommost cell, check if its BOT border is active.
         if row == self.rows - 1 and cellInfo.botBdr == BorderStatus.ACTIVE:
             if col > 0:
-                foundMove = foundMove | self.handleCellPoke(board, row, col - 1, DiagonalDirection.LRIGHT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row, col - 1, DiagonalDirection.LRIGHT)
             if col < self.cols - 1:
-                foundMove = foundMove | self.handleCellPoke(board, row, col + 1, DiagonalDirection.LLEFT)
+                foundMove = foundMove | self.handleCellPoke(self, board, row, col + 1, DiagonalDirection.LLEFT)
 
         return foundMove
 
@@ -834,161 +838,6 @@ class Solver():
             if countBlank1 == len(connBdrTuple[0]) or countBlank2 == len(connBdrTuple[1]):
                 if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
                     return True
-
-        return foundMove
-
-    def initiatePoke(self, board: Board, origRow: int, origCol: int, dxn: DiagonalDirection) -> bool:
-        """
-        Initiate a poke on a diagonally adjacent cell from the origin cell.
-
-        Arguments:
-            board: The board.
-            origRow: The row index of the origin cell.
-            origCol: The column index of the origin cell.
-            dxn: The direction of the poke when it exits the origin cell.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        if not board.isClone:
-            self.cornerEntry[origRow][origCol][dxn] = CornerEntry.POKE
-
-        if dxn == DiagonalDirection.ULEFT:
-            targetRow = origRow - 1
-            targetCol = origCol - 1
-        elif dxn == DiagonalDirection.URIGHT:
-            targetRow = origRow - 1
-            targetCol = origCol + 1
-        elif dxn == DiagonalDirection.LRIGHT:
-            targetRow = origRow + 1
-            targetCol = origCol + 1
-        elif dxn == DiagonalDirection.LLEFT:
-            targetRow = origRow + 1
-            targetCol = origCol - 1
-        else:
-            raise ValueError(f'Invalid DiagonalDirection: {dxn}')
-
-        if BoardTools.isValidCellIdx(targetRow, targetCol):
-            return self.handleCellPoke(board, targetRow, targetCol, dxn.opposite())
-        else:
-            arms = BoardTools.getArms(origRow, origCol, dxn)
-            assert len(arms) < 2, f'Did not expect outer cell to have more than 1 arm. ' \
-                f'Cell ({origRow}, {origCol}) has {len(arms)} arms at the {dxn} corner.'
-            for bdrIdx in arms:
-                if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
-                    return True
-        return False
-
-    def handleCellPoke(self, board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
-        """
-        Handle the situation when a cell is poked from a direction.
-
-        Arguments:
-            board: The board.
-            row: The row index of the poked cell.
-            col: The column index of the poked cell.
-            dxn: The direction of the poke when it enters the poked cell.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        foundMove = False
-        reqNum = board.cells[row][col]
-
-        if not board.isClone:
-            self.cornerEntry[row][col][dxn] = CornerEntry.POKE
-            if reqNum == 2:
-                self.cornerEntry[row][col][dxn] = CornerEntry.POKE
-
-        # If a cell is being poked at a particular corner and a border on that corner
-        # is already active, remove the other border on that corner.
-        bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn)
-        bdrStat1 = board.borders[bdrIdx1]
-        bdrStat2 = board.borders[bdrIdx2]
-        if bdrStat1 == BorderStatus.ACTIVE:
-            if Solver.setBorder(board, bdrIdx2, BorderStatus.BLANK):
-                foundMove = True
-        elif bdrStat2 == BorderStatus.ACTIVE:
-            if Solver.setBorder(board, bdrIdx1, BorderStatus.BLANK):
-                foundMove = True
-
-        if foundMove:
-            return True
-
-        # If a 1-cell is poked, we know that its sole active border must be on that corner,
-        # so we should remove the borders on the opposite corner.
-        if reqNum == 1:
-            blankBorders = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
-
-            # The board is invalid if the border opposite from the poke direction is already ACTIVE.
-            for bdrIdx in blankBorders:
-                if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
-                    foundMove = True
-
-        # If a 2-cell is poked, poke the cell opposite from the original poke direction.
-        elif reqNum == 2:
-            bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
-            # If 2-cell is poked, check if only one UNSET border is remaining on the opposite side.
-            # If so, activate that border.
-            if board.borders[bdrIdx1] == BorderStatus.BLANK:
-                if Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE):
-                    foundMove = True
-            elif board.borders[bdrIdx2] == BorderStatus.BLANK:
-                if Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
-                    foundMove = True
-            # Propagate the poke to the next cell
-            foundMove = foundMove | self.initiatePoke(board, row, col, dxn.opposite())
-
-        # If a 3-cell is poked, the borders opposite the poked corner should be activated.
-        elif reqNum == 3:
-            borders = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
-            for bdrIdx in borders:
-                if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
-                    foundMove = True
-            # Check if there is an active arm from the poke direction.
-            # If there is, remove the other arms from that corner.
-            arms = BoardTools.getArms(row, col, dxn)
-            countUnset, countActive, _ = SolverTools.getStatusCount(board, arms)
-
-            # The board is invalid if the number of active arms is more than 1
-            if countActive > 1:
-                raise InvalidBoardException(f'A poked 3-cell cannot have more than two active arms: {row},{col}')
-
-            if countActive == 1 and countUnset > 0:
-                for bdrIdx in arms:
-                    if board.borders[bdrIdx] == BorderStatus.UNSET:
-                        if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
-                            foundMove = True
-
-        if not foundMove:
-            # As a general case, check if the poke should activate a lone border.
-            bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn)
-            if board.borders[bdrIdx1] == BorderStatus.BLANK:
-                if Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE):
-                    foundMove = True
-            elif board.borders[bdrIdx2] == BorderStatus.BLANK:
-                if Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
-                    foundMove = True
-
-        if not foundMove:
-            # Get all arms of the cell except for the direction that was poked.
-            otherArms: list[int] = []
-            for otherDxn in DiagonalDirection:
-                if otherDxn == dxn:
-                    continue
-                otherArms.extend(BoardTools.getArms(row, col, otherDxn))
-
-            # Count the UNSET and ACTIVE arms from all those other arms.
-            countUnset, countActive, _ = SolverTools.getStatusCount(board, otherArms)
-
-            # If there is only one remaining UNSET arm, set it accordingly.
-            if countUnset == 1:
-                isActiveBordersEven = countActive % 2 == 0
-                newStatus = BorderStatus.ACTIVE if isActiveBordersEven else BorderStatus.BLANK
-                for bdrIdx in otherArms:
-                    if board.borders[bdrIdx] == BorderStatus.UNSET:
-                        if Solver.setBorder(board, bdrIdx, newStatus):
-                            foundMove = True
 
         return foundMove
 
@@ -1068,11 +917,11 @@ class Solver():
         elif cellInfo.reqNum == 2:
             # Initiate pokes on the directions where its corners isn't smooth.
             if dxn == DiagonalDirection.ULEFT or dxn == DiagonalDirection.LRIGHT:
-                foundMove = foundMove | self.initiatePoke(board, row, col, DiagonalDirection.URIGHT)
-                foundMove = foundMove | self.initiatePoke(board, row, col, DiagonalDirection.LLEFT)
+                foundMove = foundMove | self.initiatePoke(self, board, row, col, DiagonalDirection.URIGHT)
+                foundMove = foundMove | self.initiatePoke(self, board, row, col, DiagonalDirection.LLEFT)
             elif dxn == DiagonalDirection.URIGHT or dxn == DiagonalDirection.LLEFT:
-                foundMove = foundMove | self.initiatePoke(board, row, col, DiagonalDirection.ULEFT)
-                foundMove = foundMove | self.initiatePoke(board, row, col, DiagonalDirection.LRIGHT)
+                foundMove = foundMove | self.initiatePoke(self, board, row, col, DiagonalDirection.ULEFT)
+                foundMove = foundMove | self.initiatePoke(self, board, row, col, DiagonalDirection.LRIGHT)
             else:
                 raise ValueError(f'Invalid DiagonalDirection: {dxn}')
 
@@ -1201,7 +1050,7 @@ class Solver():
                 if cellInfo.bdrUnsetCount > 0:
                     for dxn in DiagonalDirection:
                         if self.cornerEntry[row][col][dxn] == CornerEntry.POKE:
-                            if self.initiatePoke(self.board, row, col, dxn):
+                            if self.initiatePoke(self, self.board, row, col, dxn):
                                 foundMove = True
                         elif self.cornerEntry[row][col][dxn] == CornerEntry.SMOOTH:
                             if self.handleSmoothCorner(self.board, cellInfo, dxn):
