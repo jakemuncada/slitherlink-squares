@@ -117,20 +117,20 @@ def _handleDiagonal3Cells(board: Board, row: int, col: int) -> None:
             _setBorder(board, bdr, BorderStatus.BLANK)
 
     # Check UL for a 3-cell
-    if hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.LRIGHT.opposite()):
+    if _hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.LRIGHT.opposite()):
         _setCorner(DiagonalDirection.LRIGHT)
     # Check UR for a 3-cell
-    if hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.LLEFT.opposite()):
+    if _hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.LLEFT.opposite()):
         _setCorner(DiagonalDirection.LLEFT)
     # Check LR for a 3-cell
-    if hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.ULEFT.opposite()):
+    if _hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.ULEFT.opposite()):
         _setCorner(DiagonalDirection.ULEFT)
     # Check LL for a 3-cell
-    if hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.URIGHT.opposite()):
+    if _hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.URIGHT.opposite()):
         _setCorner(DiagonalDirection.URIGHT)
 
 
-def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
+def _hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
     """
     Returns true if the given cell is a 3-cell. Will propagate the checking
     if the given cell is a 2-cell.
@@ -148,7 +148,7 @@ def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection) -
     if nextCellIdx is None:
         return False
 
-    return hasDiagonal3Cell(board, nextCellIdx[0], nextCellIdx[1], dxn)
+    return _hasDiagonal3Cell(board, nextCellIdx[0], nextCellIdx[1], dxn)
 
 
 def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> None:
