@@ -57,6 +57,7 @@ class Renderer:
         self.cellGroupOverlay: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
 
         self.showCellGroupOverlay = False
+        self.borderVertexCoords: dict[int, tuple[int, int]] = {}
 
         # Compute the optimal cell size
         totalWidth = PUZZ_RECT.width - (RECT_MARGIN * 2)
@@ -110,13 +111,13 @@ class Renderer:
         self.borderSurface.set_colorkey(COLORKEY)
         self.cellGroupOverlay.set_colorkey(COLORKEY)
 
-        for i in range(self.board.rows):
-            for j in range(self.board.cols):
-                ul = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
-                ur = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
-                ll = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
-                lr = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
-                center = self.getCellCoords(i, j)
+        for row in range(self.board.rows):
+            for col in range(self.board.cols):
+                ul = self.getVertexCoords(row, col, DiagonalDirection.ULEFT)
+                ur = self.getVertexCoords(row, col, DiagonalDirection.URIGHT)
+                ll = self.getVertexCoords(row, col, DiagonalDirection.LLEFT)
+                lr = self.getVertexCoords(row, col, DiagonalDirection.LRIGHT)
+                center = self.getCellCoords(row, col)
                 _drawDashedLine(ul, ur)
                 _drawDashedLine(ul, ll)
                 _drawDashedLine(ur, lr)
@@ -125,7 +126,28 @@ class Renderer:
                 _drawVtx(ur)
                 _drawVtx(ll)
                 _drawVtx(lr)
-                _drawLabel(center, self.board.cells[i][j])
+                _drawLabel(center, self.board.cells[row][col])
+
+                # Pre-calculate each border's vertices
+                for dxn in CardinalDirection:
+                    if dxn == CardinalDirection.TOP:
+                        v1 = self.getVertexCoords(row, col, DiagonalDirection.ULEFT)
+                        v2 = self.getVertexCoords(row, col, DiagonalDirection.URIGHT)
+                    elif dxn == CardinalDirection.RIGHT:
+                        v1 = self.getVertexCoords(row, col, DiagonalDirection.URIGHT)
+                        v2 = self.getVertexCoords(row, col, DiagonalDirection.LRIGHT)
+                    elif dxn == CardinalDirection.BOT:
+                        v1 = self.getVertexCoords(row, col, DiagonalDirection.LLEFT)
+                        v2 = self.getVertexCoords(row, col, DiagonalDirection.LRIGHT)
+                    elif dxn == CardinalDirection.LEFT:
+                        v1 = self.getVertexCoords(row, col, DiagonalDirection.ULEFT)
+                        v2 = self.getVertexCoords(row, col, DiagonalDirection.LLEFT)
+                    else:
+                        raise ValueError(f'Invalid direction: {dxn}')
+
+                    bdrIdx = BoardTools.getBorderIdx(row, col, dxn)
+                    self.borderVertexCoords[bdrIdx] = (v1, v2)
+
 
     def draw(self) -> None:
         """
@@ -149,42 +171,12 @@ class Renderer:
         Draw the `BLANK` and `ACTIVE` borders of the board.
         """
         self.borderSurface.fill(COLORKEY)
-        doneBorders: set[int] = set()
-
-        def _drawBorder(row, col, direction):
-            bdrIdx = BoardTools.getBorderIdx(row, col, direction)
-            if bdrIdx not in doneBorders:
-                doneBorders.add(bdrIdx)
-                status = self.board.borders[bdrIdx]
-                if status in (BorderStatus.ACTIVE, BorderStatus.BLANK):
-                    if direction == CardinalDirection.TOP:
-                        v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
-                        v2 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
-                    elif direction == CardinalDirection.RIGHT:
-                        v1 = self.getVertexCoords(i, j, DiagonalDirection.URIGHT)
-                        v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
-                    elif direction == CardinalDirection.BOT:
-                        v1 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
-                        v2 = self.getVertexCoords(i, j, DiagonalDirection.LRIGHT)
-                    elif direction == CardinalDirection.LEFT:
-                        v1 = self.getVertexCoords(i, j, DiagonalDirection.ULEFT)
-                        v2 = self.getVertexCoords(i, j, DiagonalDirection.LLEFT)
-                    else:
-                        raise ValueError(f'Invalid direction: {direction}')
-
-                    if status == BorderStatus.ACTIVE:
-                        pg.draw.line(self.borderSurface, (255, 30, 30), v1, v2, BORDER_ACTIVE_THICKNESS)
-                    else:
-                        pg.draw.line(self.borderSurface, BG_COLOR, v1, v2, BORDER_ACTIVE_THICKNESS)
-
-        for i in range(self.board.rows):
-            for j in range(self.board.cols):
-                _drawBorder(i, j, CardinalDirection.RIGHT)
-                _drawBorder(i, j, CardinalDirection.BOT)
-                if i == 0:
-                    _drawBorder(i, j, CardinalDirection.TOP)
-                if j == 0:
-                    _drawBorder(i, j, CardinalDirection.LEFT)
+        for bdrIdx in range(len(self.board.borders)):
+            v1, v2 = self.borderVertexCoords[bdrIdx]
+            if self.board.borders[bdrIdx] == BorderStatus.ACTIVE:
+                pg.draw.line(self.borderSurface, (255, 30, 30), v1, v2, BORDER_ACTIVE_THICKNESS)
+            elif self.board.borders[bdrIdx] == BorderStatus.BLANK:
+                pg.draw.line(self.borderSurface, BG_COLOR, v1, v2, BORDER_ACTIVE_THICKNESS)
 
     def updateCellGroupOverlay(self) -> None:
         """
@@ -352,13 +344,13 @@ class Renderer:
         refDist = min(self.cellSize[0], self.cellSize[1])
         minDist = 999999
         closestIdx = None
-        for i in range(self.board.rows):
-            for j in range(self.board.cols):
-                coords = self.getCellCoords(i, j)
+        for row in range(self.board.rows):
+            for col in range(self.board.cols):
+                coords = self.getCellCoords(row, col)
                 dist = pt.dist(Point(coords))
                 if dist < refDist and dist < minDist:
                     minDist = dist
-                    closestIdx = (i, j)
+                    closestIdx = (row, col)
         return closestIdx
 
     def getClosestBorderIdx(self, pt: Point, closestCell: Optional[tuple[int, int]] = None) -> Optional[int]:
@@ -379,15 +371,15 @@ class Renderer:
         minDist = 999999
         closestIdx = None
         if closestCell is None:
-            for i in range(self.board.rows):
-                for j in range(self.board.cols):
+            for row in range(self.board.rows):
+                for col in range(self.board.cols):
                     for direction in CardinalDirection:
-                        coords = self.getBorderCoords(i, j, direction)
+                        coords = self.getBorderCoords(row, col, direction)
                         borderPt = Point(coords)
                         dist = pt.dist(borderPt)
                         if dist < refDist and dist < minDist:
                             minDist = dist
-                            closestIdx = BoardTools.getBorderIdx(i, j, direction)
+                            closestIdx = BoardTools.getBorderIdx(row, col, direction)
         else:
             for direction in CardinalDirection:
                 coords = self.getBorderCoords(closestCell[0], closestCell[1], direction)
