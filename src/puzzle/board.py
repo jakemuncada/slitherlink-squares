@@ -45,7 +45,7 @@ class Board:
 
         self.cellGroups = [[None for _ in range(cols)] for _ in range(rows)]
 
-        self.pokedCells: set[tuple[int, int, DiagonalDirection]] = set()
+        self.pokes: set[tuple[int, int, DiagonalDirection]] = set()
         self.cornerEntries: list[list[list[CornerEntry]]] = \
             [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, ] 
             for _ in range(self.cols)] for _ in range(self.rows)]
@@ -100,7 +100,7 @@ class Board:
         """
         Reset the board to its initial state.
         """
-        self.pokedCells = set()
+        self.pokes = set()
 
         self.cornerEntries: list[list[list[CornerEntry]]] = \
             [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, ] 
@@ -120,11 +120,13 @@ class Board:
         cellsCopy = deepcopy(self.cells)
         bordersCopy = [bdrStatus for bdrStatus in self.borders]
         clonedBoard = Board(self.rows, self.cols, cellsCopy, bordersCopy)
-        clonedBoard.pokedCells = self.pokedCells.copy()
+        clonedBoard.pokes = self.pokes.copy()
+
         for row in range(self.rows):
             for col in range(self.cols):
                 for dxn in DiagonalDirection:
                     clonedBoard.cornerEntries[row][col][dxn] = self.cornerEntries[row][col][dxn]
+
         clonedBoard.isClone = True
         return clonedBoard
 

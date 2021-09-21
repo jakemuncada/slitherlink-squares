@@ -79,7 +79,7 @@ class Control:
             self.solver.solveCurrentBoard(self.renderer.draw)
         elif keys[pg.K_i]:
             self.solver.solveInitial()
-        elif keys[pg.K_o]:
+        elif keys[pg.K_l]:
             self.solver.profileFromScratch()
         elif keys[pg.K_p]:
             self.solver.profileCurrentBoard()
