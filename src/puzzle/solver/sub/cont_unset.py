@@ -50,7 +50,10 @@ def checkCellForContinuousUnsetBorders(solver: Solver, board: Board, cellInfo: C
 
     # If all corners have continous unset borders, the board is invalid.
     if count == 4:
-        raise InvalidBoardException('Found continous unset borders on all four corners.')
+        raise InvalidBoardException('Found continuous unset borders on all four corners.')
+
+    if cellInfo.reqNum == 2 and count > 2:
+        raise InvalidBoardException('2-Cells cannot have more than two continuous unset corners.')
 
     if cellInfo.reqNum == 1:
         return _process1Cell(board, solver, cellInfo, corners, cornersStatus)
