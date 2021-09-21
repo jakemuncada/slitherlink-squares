@@ -55,6 +55,27 @@ class Solver():
         self.prioCells.extend(medPrio)
         self.prioCells.extend(lowPrio)
 
+    @staticmethod
+    def setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> bool:
+        """
+        Set the specified border's status.
+
+        Arguments:
+            board: The board.
+            borderIdx: The index of the target border.
+            newStatus: The new border status.
+
+        Returns:
+            True if the border was set to the new status.
+            False if the border was already in that status.
+        """
+        if board.borders[borderIdx] == BorderStatus.UNSET:
+            board.borders[borderIdx] = newStatus
+            return True
+        elif board.borders[borderIdx] != newStatus:
+            raise InvalidBoardException
+        return False
+
     def solveBoardFromScratch(self, updateUI: Callable) -> None:
         """
         Solve board from scratch.
@@ -101,7 +122,7 @@ class Solver():
 
                 if self.board.borders[guessBdrIdx] == BorderStatus.UNSET:
                     cloneBoard = self.board.clone()
-                    self.setBorder(cloneBoard, guessBdrIdx, guessStatus)
+                    Solver.setBorder(cloneBoard, guessBdrIdx, guessStatus)
                     currGuessNum += 1
 
                     isValid, timeElapsed = self._solve(cloneBoard, updateUI)
@@ -112,7 +133,7 @@ class Solver():
                     if not isValid:
                         print('Guess #{}: border {} to {} [{:.3f} seconds]'.format(
                             currGuessNum, guessBdrIdx, guessStatus.opposite(), time.time() - t1))
-                        self.setBorder(self.board, guessBdrIdx, guessStatus.opposite())
+                        Solver.setBorder(self.board, guessBdrIdx, guessStatus.opposite())
                         correctGuessCount += 1
                         break
 
@@ -221,26 +242,6 @@ class Solver():
             return (False, time.time() - t0)
 
         return (True, time.time() - t0)
-
-    def setBorder(self, board: Board, borderIdx: int, newStatus: BorderStatus) -> bool:
-        """
-        Set the specified border's status.
-
-        Arguments:
-            board: The board.
-            borderIdx: The index of the target border.
-            newStatus: The new border status.
-
-        Returns:
-            True if the border was set to the new status.
-            False if the border was already in that status.
-        """
-        if board.borders[borderIdx] == BorderStatus.UNSET:
-            board.borders[borderIdx] = newStatus
-            return True
-        elif board.borders[borderIdx] != newStatus:
-            raise InvalidBoardException
-        return False
 
     def solveObvious(self, board: Board) -> bool:
         """
@@ -390,18 +391,18 @@ class Solver():
             _found = False
             if cellInfo.reqNum == 1:
                 if grpTop == grpBot and grpTop is not None and grpBot is not None:
-                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
-                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
                 elif grpTop != grpBot and grpTop is not None and grpBot is not None:
-                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
-                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
 
                 if grpLeft == grpRight and grpLeft is not None and grpRight is not None:
-                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
-                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
                 elif grpLeft != grpRight and grpLeft is not None and grpRight is not None:
-                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
-                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
 
             elif cellInfo.reqNum == 2:
                 if (grpTop == grpBot and grpTop is not None) or \
@@ -411,17 +412,17 @@ class Solver():
 
             elif cellInfo.reqNum == 3:
                 if grpTop == grpBot and grpTop is not None:
-                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
-                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
                 if grpLeft == grpRight and grpLeft is not None:
-                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
-                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
                 if grpTop is not None and grpBot is not None and grpTop != grpBot:
-                    _found = _found | self.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
-                    _found = _found | self.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
                 if grpLeft is not None and grpRight is not None and grpLeft != grpRight:
-                    _found = _found | self.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
-                    _found = _found | self.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
 
             foundMove = foundMove or _found
             if _found:
@@ -434,7 +435,7 @@ class Solver():
                     adjGrp = adjCellGroups[i]
                     if bdrStat == BorderStatus.UNSET and adjGrp is not None:
                         newStatus = fromAdj(grpOwn == adjGrp)
-                        self.setBorder(board, bdrIdx, newStatus)
+                        Solver.setBorder(board, bdrIdx, newStatus)
                         foundMove = True
                 continue
 
@@ -512,7 +513,7 @@ class Solver():
                     break
 
             if group1 is not None and group2 is not None and group1 == group2:
-                if self.setBorder(board, bdrIdx, BorderStatus.BLANK):
+                if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
                     return True
 
         return moveFound
@@ -543,7 +544,7 @@ class Solver():
         #
         # if cellInfo.bdrActiveCount == 3 and cellInfo.bdrUnsetCount == 1:
         #     for bdrIdx in cellInfo.unsetBorders:
-        #         self.setBorder(board, bdrIdx, BorderStatus.BLANK)
+        #         Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
         #         return True
         #######################################################################
 
@@ -590,8 +591,8 @@ class Solver():
                     currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
                     if self.tools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
                         bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
-                        self.setBorder(board, bdrIdx1, BorderStatus.ACTIVE)
-                        self.setBorder(board, bdrIdx2, BorderStatus.ACTIVE)
+                        Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE)
+                        Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE)
                         foundMove = True
 
         if not foundMove and reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
@@ -627,14 +628,14 @@ class Solver():
             # If the remaining unset borders should be filled up.
             if cellInfo.bdrUnsetCount + cellInfo.bdrActiveCount == cellInfo.reqNum:
                 for bdrIdx in cellInfo.unsetBorders:
-                    self.setBorder(board, bdrIdx, BorderStatus.ACTIVE)
+                    Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE)
                     foundMove = True
 
             # If the required number has been met
             # and the remaining unset borders should be removed.
             elif cellInfo.bdrActiveCount == cellInfo.reqNum:
                 for bdrIdx in cellInfo.unsetBorders:
-                    self.setBorder(board, bdrIdx, BorderStatus.BLANK)
+                    Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
                     foundMove = True
 
         return foundMove
@@ -698,34 +699,34 @@ class Solver():
 
         if all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerUL):
             if isBot3Cell:
-                self.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
                 return True
             if isRight3Cell:
-                self.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
                 return True
 
         elif all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerUR):
             if isBot3Cell:
-                self.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
                 return True
             if isLeft3Cell:
-                self.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
                 return True
 
         elif all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerLR):
             if isLeft3Cell:
-                self.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
                 return True
             if isTop3Cell:
-                self.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
                 return True
 
         elif all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerLL):
             if isRight3Cell:
-                self.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
                 return True
             if isTop3Cell:
-                self.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
+                Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
                 return True
 
         return False
@@ -810,14 +811,14 @@ class Solver():
         if cellInfo.reqNum == 1:
             for bdrSet in contUnsetBdrs:
                 for bdrIdx in bdrSet:
-                    self.setBorder(board, bdrIdx, BorderStatus.BLANK)
+                    Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
                     foundMove = True
 
         # If a 3-cell has continuous unset borders, they should be set to ACTIVE.
         if cellInfo.reqNum == 3:
             for bdrSet in contUnsetBdrs:
                 for bdrIdx in bdrSet:
-                    self.setBorder(board, bdrIdx, BorderStatus.ACTIVE)
+                    Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE)
                     foundMove = True
 
         # If a 2-cell has continuous unset borders
@@ -832,11 +833,11 @@ class Solver():
             # then the continuous UNSET borders should be activated.
             if cellInfo.bdrBlankCount > 0:
                 for bdrIdx in contUnsetBdrs[0]:
-                    if self.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
+                    if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
                         foundMove = True
                 for bdrIdx in cellInfo.bdrIndices:
                     if bdrIdx not in contUnsetBdrs[0]:
-                        if self.setBorder(board, bdrIdx, BorderStatus.BLANK):
+                        if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
                             foundMove = True
             else:
                 topBdr, rightBdr, botBdr, leftBdr = cellInfo.bdrIndices
@@ -871,7 +872,7 @@ class Solver():
             for connBdrIdx in connBdrList:
                 if self.tools.isContinuous(board, borderIdx, connBdrIdx):
                     if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
-                        if self.setBorder(board, borderIdx, BorderStatus.ACTIVE):
+                        if Solver.setBorder(board, borderIdx, BorderStatus.ACTIVE):
                             return True
 
             connBdrTuple = BoardTools.getConnectedBorders(borderIdx)
@@ -880,11 +881,11 @@ class Solver():
             _, countActive2, countBlank2 = self.tools.getStatusCount(board, connBdrTuple[1])
 
             if countActive1 > 1 or countActive2 > 1:
-                if self.setBorder(board, borderIdx, BorderStatus.BLANK):
+                if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
                     return True
 
             if countBlank1 == len(connBdrTuple[0]) or countBlank2 == len(connBdrTuple[1]):
-                if self.setBorder(board, borderIdx, BorderStatus.BLANK):
+                if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
                     return True
 
         return foundMove
@@ -927,7 +928,7 @@ class Solver():
             assert len(arms) < 2, f'Did not expect outer cell to have more than 1 arm. ' \
                 f'Cell ({origRow}, {origCol}) has {len(arms)} arms at the {dxn} corner.'
             for bdrIdx in arms:
-                if self.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
+                if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
                     return True
         return False
 
@@ -958,10 +959,10 @@ class Solver():
         bdrStat1 = board.borders[bdrIdx1]
         bdrStat2 = board.borders[bdrIdx2]
         if bdrStat1 == BorderStatus.ACTIVE:
-            if self.setBorder(board, bdrIdx2, BorderStatus.BLANK):
+            if Solver.setBorder(board, bdrIdx2, BorderStatus.BLANK):
                 foundMove = True
         elif bdrStat2 == BorderStatus.ACTIVE:
-            if self.setBorder(board, bdrIdx1, BorderStatus.BLANK):
+            if Solver.setBorder(board, bdrIdx1, BorderStatus.BLANK):
                 foundMove = True
 
         if foundMove:
@@ -974,7 +975,7 @@ class Solver():
 
             # The board is invalid if the border opposite from the poke direction is already ACTIVE.
             for bdrIdx in blankBorders:
-                if self.setBorder(board, bdrIdx, BorderStatus.BLANK):
+                if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
                     foundMove = True
 
         # If a 2-cell is poked, poke the cell opposite from the original poke direction.
@@ -983,10 +984,10 @@ class Solver():
             # If 2-cell is poked, check if only one UNSET border is remaining on the opposite side.
             # If so, activate that border.
             if board.borders[bdrIdx1] == BorderStatus.BLANK:
-                if self.setBorder(board, bdrIdx2, BorderStatus.ACTIVE):
+                if Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE):
                     foundMove = True
             elif board.borders[bdrIdx2] == BorderStatus.BLANK:
-                if self.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
+                if Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
                     foundMove = True
             # Propagate the poke to the next cell
             foundMove = foundMove | self.initiatePoke(board, row, col, dxn.opposite())
@@ -995,7 +996,7 @@ class Solver():
         elif reqNum == 3:
             borders = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
             for bdrIdx in borders:
-                if self.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
+                if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
                     foundMove = True
             # Check if there is an active arm from the poke direction.
             # If there is, remove the other arms from that corner.
@@ -1009,17 +1010,17 @@ class Solver():
             if countActive == 1 and countUnset > 0:
                 for bdrIdx in arms:
                     if board.borders[bdrIdx] == BorderStatus.UNSET:
-                        if self.setBorder(board, bdrIdx, BorderStatus.BLANK):
+                        if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
                             foundMove = True
 
         if not foundMove:
             # As a general case, check if the poke should activate a lone border.
             bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn)
             if board.borders[bdrIdx1] == BorderStatus.BLANK:
-                if self.setBorder(board, bdrIdx2, BorderStatus.ACTIVE):
+                if Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE):
                     foundMove = True
             elif board.borders[bdrIdx2] == BorderStatus.BLANK:
-                if self.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
+                if Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
                     foundMove = True
 
         if not foundMove:
@@ -1039,7 +1040,7 @@ class Solver():
                 newStatus = BorderStatus.ACTIVE if isActiveBordersEven else BorderStatus.BLANK
                 for bdrIdx in otherArms:
                     if board.borders[bdrIdx] == BorderStatus.UNSET:
-                        if self.setBorder(board, bdrIdx, newStatus):
+                        if Solver.setBorder(board, bdrIdx, newStatus):
                             foundMove = True
 
         return foundMove
@@ -1079,10 +1080,10 @@ class Solver():
         # If one border is UNSET and the other is either ACTIVE or BLANK, set it accordingly.
         if cornerStat1 != cornerStat2:
             if cornerStat1 == BorderStatus.UNSET:
-                self.setBorder(board, cornerIdx1, cornerStat2)
+                Solver.setBorder(board, cornerIdx1, cornerStat2)
                 return True
             elif cornerStat2 == BorderStatus.UNSET:
-                self.setBorder(board, cornerIdx2, cornerStat1)
+                Solver.setBorder(board, cornerIdx2, cornerStat1)
                 return True
             else:
                 raise InvalidBoardException(f'The cell {row},{col} should have a smooth {dxn} corner, '
@@ -1102,19 +1103,19 @@ class Solver():
         # If the smooth corner only has one UNSET arm, set it to accordingly.
         if unsetArmCount == 1:
             newStatus = BorderStatus.BLANK if activeArmCount % 2 == 0 else BorderStatus.ACTIVE
-            if self.setBorder(board, unsetArmIdx, newStatus):
+            if Solver.setBorder(board, unsetArmIdx, newStatus):
                 return True
 
         # A smooth corner on a 1-cell always means that both borders are BLANK.
         if cellInfo.reqNum == 1:
             for bdrIdx in (cornerIdx1, cornerIdx2):
-                if self.setBorder(board, bdrIdx, BorderStatus.BLANK):
+                if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
                     foundMove = True
 
         # A smooth corner on a 3-cell always means that both borders are ACTIVE.
         elif cellInfo.reqNum == 3:
             for bdrIdx in (cornerIdx1, cornerIdx2):
-                if self.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
+                if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
                     foundMove = True
 
         elif cellInfo.reqNum == 2:
@@ -1138,7 +1139,7 @@ class Solver():
                 # If there is no diagonally adjacent cell, then this is an outer edge cell,
                 # so we just directly remove the one arm at that direction.
                 for armIdx in BoardTools.getArms(row, col, dxn.opposite()):
-                    if self.setBorder(board, armIdx, BorderStatus.BLANK):
+                    if Solver.setBorder(board, armIdx, BorderStatus.BLANK):
                         return True
 
         return foundMove
@@ -1168,7 +1169,7 @@ class Solver():
         if activeCount1 == 1 and activeCount2 == 1:
             for bdrIdx in armsUL + armsLR:
                 if board.borders[bdrIdx] == BorderStatus.UNSET:
-                    self.setBorder(board, bdrIdx, BorderStatus.BLANK)
+                    Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
                     foundMove = True
 
         _, activeCount1, _ = self.tools.getStatusCount(board, armsUR)
@@ -1176,7 +1177,7 @@ class Solver():
         if activeCount1 == 1 and activeCount2 == 1:
             for bdrIdx in armsUR + armsLL:
                 if board.borders[bdrIdx] == BorderStatus.UNSET:
-                    self.setBorder(board, bdrIdx, BorderStatus.BLANK)
+                    Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
                     foundMove = True
 
         return foundMove
