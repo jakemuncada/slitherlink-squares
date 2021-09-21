@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Optional
 
 from src.puzzle.board_tools import BoardTools
-from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, OptInt
+from src.puzzle.enums import BorderStatus, CardinalDirection, CornerEntry, DiagonalDirection, OptInt
 
 
 class Board:
@@ -44,6 +44,11 @@ class Board:
             [BorderStatus.UNSET for _ in range((((cols * 2) + 1) * rows) + cols)]
 
         self.cellGroups = [[None for _ in range(cols)] for _ in range(rows)]
+
+        self.pokedCells: set[tuple[int, int, DiagonalDirection]] = set()
+        self.cornerEntries: list[list[list[CornerEntry]]] = \
+            [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, ] 
+            for _ in range(self.cols)] for _ in range(self.rows)]
 
         self.reqCells = set()
         if cells is not None:
@@ -95,6 +100,12 @@ class Board:
         """
         Reset the board to its initial state.
         """
+        self.pokedCells = set()
+
+        self.cornerEntries: list[list[list[CornerEntry]]] = \
+            [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, ] 
+            for _ in range(self.cols)] for _ in range(self.rows)]
+
         for borderIdx in range(len(self.borders)):
             self.borders[borderIdx] = BorderStatus.UNSET
 
@@ -109,6 +120,11 @@ class Board:
         cellsCopy = deepcopy(self.cells)
         bordersCopy = [bdrStatus for bdrStatus in self.borders]
         clonedBoard = Board(self.rows, self.cols, cellsCopy, bordersCopy)
+        clonedBoard.pokedCells = self.pokedCells.copy()
+        for row in range(self.rows):
+            for col in range(self.cols):
+                for dxn in DiagonalDirection:
+                    clonedBoard.cornerEntries[row][col][dxn] = self.cornerEntries[row][col][dxn]
         clonedBoard.isClone = True
         return clonedBoard
 

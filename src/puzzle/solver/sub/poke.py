@@ -3,11 +3,98 @@ This submodule contains the tools to solve the clues
 regarding poked cells.
 """
 
+from typing import Optional
+
+from src.puzzle.cell_info import CellInfo
 from src.puzzle.board import Board
 from src.puzzle.solver.solver import Solver
 from src.puzzle.board_tools import BoardTools
 from src.puzzle.solver.tools import SolverTools
 from src.puzzle.enums import BorderStatus, CornerEntry, DiagonalDirection, InvalidBoardException
+
+
+def solveUsingCornerEntryInfo(solver: Solver, board: Board) -> bool:
+    """
+    Update the CornerEntry types of each corner of each cell,
+    then use that information to try to solve for their borders.
+
+    This can only be performed on the main board, not on a clone.
+
+    Arguments:
+        solver: The solver.
+
+    Returns:
+        True if a move was found. False otherwise.
+    """
+    foundMove = False
+    _updateCornerEntries(board)
+    for row in range(solver.rows):
+        for col in range(solver.cols):
+            cellInfo = CellInfo.init(board, row, col)
+            if cellInfo.bdrUnsetCount > 0:
+                for dxn in DiagonalDirection:
+                    if board.cornerEntries[row][col][dxn] == CornerEntry.POKE:
+                        if initiatePoke(solver, board, row, col, dxn):
+                            foundMove = True
+                    elif board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
+                        if solver.handleSmoothCorner(solver.board, cellInfo, dxn):
+                            foundMove = True
+    return foundMove
+
+
+def _updateCornerEntries(board: Board) -> None:
+    """
+    Update the CornerEntry types of each corner of each cell.
+    """
+    updateFlag = True
+
+    def setCornerEntry(cellIdx: Optional[tuple[int, int]], dxn: DiagonalDirection,
+                        newVal: CornerEntry) -> bool:
+        if cellIdx is None:
+            return False
+        row, col = cellIdx
+        if board.cornerEntries[row][col][dxn] == CornerEntry.UNKNOWN:
+            board.cornerEntries[row][col][dxn] = newVal
+            return True
+        elif board.cornerEntries[row][col][dxn] != newVal:
+            raise InvalidBoardException(f'The corner entry of cell {row},{col} '
+                                        f'at direction {dxn} cannot be set to {newVal}.')
+        return False
+
+    while updateFlag:
+        updateFlag = False
+        for row in range(board.rows):
+            for col in range(board.cols):
+                unknownDxn = None
+                countPoke = 0
+                countSmooth = 0
+                countUnknown = 0
+                for dxn in DiagonalDirection:
+                    arms = BoardTools.getArms(row, col, dxn)
+                    countUnset, countActive, _ = SolverTools.getStatusCount(board, arms)
+
+                    if countUnset == 0:
+                        targetCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
+                        newVal = CornerEntry.SMOOTH if countActive % 2 == 0 else CornerEntry.POKE
+                        updateFlag = updateFlag | setCornerEntry((row, col), dxn, newVal)
+                        updateFlag = updateFlag | setCornerEntry(targetCellIdx, dxn.opposite(), newVal)
+
+                    if board.cornerEntries[row][col][dxn] == CornerEntry.POKE:
+                        countPoke += 1
+                    elif board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
+                        countSmooth += 1
+                    elif board.cornerEntries[row][col][dxn] == CornerEntry.UNKNOWN:
+                        countUnknown += 1
+                        unknownDxn = dxn
+
+                    if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
+                        newVal = board.cornerEntries[row][col][dxn]
+                        oppCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
+                        updateFlag = updateFlag | setCornerEntry(oppCellIdx, dxn.opposite(), newVal)
+
+                if countUnknown == 1:
+                    newCornerEntry = CornerEntry.SMOOTH if countPoke % 2 == 0 else CornerEntry.POKE
+                    updateFlag = updateFlag | setCornerEntry((row, col), unknownDxn, newCornerEntry)
 
 
 def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
@@ -27,10 +114,9 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
     foundMove = False
     reqNum = board.cells[row][col]
 
-    if not board.isClone:
-        solver.cornerEntry[row][col][dxn] = CornerEntry.POKE
-        if reqNum == 2:
-            solver.cornerEntry[row][col][dxn] = CornerEntry.POKE
+    board.cornerEntries[row][col][dxn] = CornerEntry.POKE
+    if reqNum == 2:
+        board.cornerEntries[row][col][dxn] = CornerEntry.POKE
 
     # If a cell is being poked at a particular corner and a border on that corner
     # is already active, remove the other border on that corner.
@@ -139,8 +225,7 @@ def initiatePoke(solver:Solver, board: Board, origRow: int, origCol: int, dxn: D
     Returns:
         True if a move was found. False otherwise.
     """
-    if not board.isClone:
-        solver.cornerEntry[origRow][origCol][dxn] = CornerEntry.POKE
+    board.cornerEntries[origRow][origCol][dxn] = CornerEntry.POKE
 
     if dxn == DiagonalDirection.ULEFT:
         targetRow = origRow - 1
