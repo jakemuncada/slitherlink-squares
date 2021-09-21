@@ -10,8 +10,8 @@ from typing import Optional, Callable
 from src.puzzle.board import Board
 from src.puzzle.cell_info import CellInfo
 from src.puzzle.board_tools import BoardTools
-from src.puzzle.solver.solver_init import solveInit
-from src.puzzle.solver.solver_tools import SolverTools
+from src.puzzle.solver.tools import SolverTools
+from src.puzzle.solver.initial import solveInit
 from src.puzzle.enums import BorderStatus, CardinalDirection, \
     CornerEntry, DiagonalDirection, InvalidBoardException
 
