@@ -10,7 +10,7 @@ from pygame.time import Clock
 from .point import Point
 from .render import Renderer
 from .puzzle.board import Board
-from .puzzle.solver import Solver
+from .puzzle.solver.solver import Solver
 
 FPS = 30
 TIME_PER_UPDATE = 1000.0 / FPS
