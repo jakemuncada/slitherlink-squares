@@ -36,7 +36,6 @@ class Board:
         self.rows = rows
         self.cols = cols
         self.isClone = False
-        self.tools = BoardTools(rows, cols)
 
         self.cells = cells if cells is not None else \
             [[None for _ in range(cols)] for _ in range(rows)]
@@ -144,7 +143,7 @@ class Board:
         Returns:
             The border status of the target border.
         """
-        idx = self.tools.getBorderIdx(row, col, direction)
+        idx = BoardTools.getBorderIdx(row, col, direction)
         return self.borders[idx]
 
     def getCornerStatus(self, row: int, col: int, dxn: DiagonalDirection) -> tuple[BorderStatus, BorderStatus]:
@@ -159,7 +158,7 @@ class Board:
         Returns:
             the statuses of the two borders connected to the specified corner direction.
         """
-        bdr1, bdr2 = self.tools.getCornerBorderIndices(row, col, dxn)
+        bdr1, bdr2 = BoardTools.getCornerBorderIndices(row, col, dxn)
         stat1 = self.borders[bdr1]
         stat2 = self.borders[bdr2]
         return (stat1, stat2)
@@ -176,7 +175,7 @@ class Board:
         Returns:
             the statuses of the arms connected to the specified corner direction.
         """
-        arms = self.tools.getArms(row, col, dxn)
+        arms = BoardTools.getArms(row, col, dxn)
         return [self.borders[bdrIdx] for bdrIdx in arms]
 
     def getAdjCellGroups(self, row: int, col: int) -> tuple[OptInt, OptInt, OptInt, OptInt]:
@@ -192,24 +191,9 @@ class Board:
         """
         adjCellGroups: list[OptInt] = []
         for dxn in CardinalDirection:
-            adjRow, adjCol = self.tools.getCellIdxOfAdjCell(row, col, dxn)
+            adjRow, adjCol = BoardTools.getCellIdxOfAdjCell(row, col, dxn)
             if adjRow is not None and adjCol is not None:
                 adjCellGroups.append(self.cellGroups[adjRow][adjCol])
             else:
                 adjCellGroups.append(0)
         return tuple(adjCellGroups)
-
-    # def getUnsetBordersOfCell(self, row: int, col: int) -> list[int]:
-    #     """
-    #     Returns a list of the indices of the `UNSET` borders that surround a target cell.
-
-    #     Arguments:
-    #         row: The row index of the target cell.
-    #         col: The column index of the target cell.
-    #     """
-    #     unsetBorders: list[int] = []
-    #     for direction in CardinalDirection:
-    #         idx = self.tools.getBorderIdx(row, col, direction)
-    #         if self.borders[idx] == BorderStatus.UNSET:
-    #             unsetBorders.append(idx)
-    #     return unsetBorders

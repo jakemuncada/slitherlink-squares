@@ -22,52 +22,64 @@ class BoardTools:
     the calculations hold true for all boards that have the same size (rows & cols).
     """
 
-    def __init__(self, rows: int, cols: int) -> None:
-        self.rows = rows
-        self.cols = cols
-        self.numBorders = _numBorders(rows, cols)
+    rows = 25
 
-    def isValidCellIdx(self, row: int, col: int) -> bool:
-        return _isValidCellIdx(self.rows, self.cols, row, col)
+    cols = 25
 
-    def isValidBorderIdx(self, borderIdx: int) -> bool:
-        return _isValidBorderIdx(self.rows, self.cols, borderIdx)
+    @staticmethod
+    def isValidCellIdx(row: int, col: int) -> bool:
+        return _isValidCellIdx(BoardTools.rows, BoardTools.cols, row, col)
 
-    def getCellIdxOfAdjCell(self, row: int, col: int, dxn: CardinalDirection) \
+    @staticmethod
+    def isValidBorderIdx(borderIdx: int) -> bool:
+        return _isValidBorderIdx(BoardTools.rows, BoardTools.cols, borderIdx)
+
+    @staticmethod
+    def getCellIdxOfAdjCell(row: int, col: int, dxn: CardinalDirection) \
             -> tuple[OptInt, OptInt]:
-        return _getCellIdxOfAdjCell(self.rows, self.cols, row, col, dxn)
+        return _getCellIdxOfAdjCell(BoardTools.rows, BoardTools.cols, row, col, dxn)
 
-    def getCellIdxAtDiagCorner(self, row: int, col: int, dxn: DiagonalDirection) \
+    @staticmethod
+    def getCellIdxAtDiagCorner(row: int, col: int, dxn: DiagonalDirection) \
             -> Optional[tuple[int, int]]:
-        return _getCellIdxAtDiagCorner(self.rows, self.cols, row, col, dxn)
+        return _getCellIdxAtDiagCorner(BoardTools.rows, BoardTools.cols, row, col, dxn)
 
-    def getBorderIdx(self, row: int, col: int, direction: CardinalDirection) -> int:
-        return _getBorderIdx(self.cols, row, col, direction)
+    @staticmethod
+    def getBorderIdx(row: int, col: int, direction: CardinalDirection) -> int:
+        return _getBorderIdx(BoardTools.cols, row, col, direction)
 
-    def getCellBorders(self, row: int, col: int) -> tuple[int, int, int, int]:
-        return _getCellBorders(self.cols, row, col)
+    @staticmethod
+    def getCellBorders(row: int, col: int) -> tuple[int, int, int, int]:
+        return _getCellBorders(BoardTools.cols, row, col)
 
-    def isBorderHorizontal(self, borderIdx: int) -> bool:
+    @staticmethod
+    def isBorderHorizontal(borderIdx: int) -> bool:
         return _isBorderHorizontal(borderIdx)
 
-    def getConnectedBorders(self, borderIdx: int) -> tuple[list[int], list[int]]:
-        return _getConnectedBorders(self.rows, self.cols, borderIdx)
+    @staticmethod
+    def getConnectedBorders(borderIdx: int) -> tuple[list[int], list[int]]:
+        return _getConnectedBorders(BoardTools.rows, BoardTools.cols, borderIdx)
 
-    def getConnectedBordersList(self, borderIdx: int) -> list[int]:
-        return _getConnectedBordersList(self.rows, self.cols, borderIdx)
+    @staticmethod
+    def getConnectedBordersList(borderIdx: int) -> list[int]:
+        return _getConnectedBordersList(BoardTools.rows, BoardTools.cols, borderIdx)
 
-    def getCommonVertex(self, borderIdx1: int, borderIdx2: int) -> Optional[list[int]]:
-        return _getCommonVertex(self.rows, self.cols, borderIdx1, borderIdx2)
+    @staticmethod
+    def getCommonVertex(borderIdx1: int, borderIdx2: int) -> Optional[list[int]]:
+        return _getCommonVertex(BoardTools.rows, BoardTools.cols, borderIdx1, borderIdx2)
 
-    def getCornerBorderIndices(self, row: int, col: int, cornerDir: DiagonalDirection) -> tuple[int, int]:
-        return _getCornerBorderIndices(self.cols, row, col, cornerDir)
+    @staticmethod
+    def getCornerBorderIndices(row: int, col: int, cornerDir: DiagonalDirection) -> tuple[int, int]:
+        return _getCornerBorderIndices(BoardTools.cols, row, col, cornerDir)
 
-    def getArms(self, row: int, col: int, cornerDir: DiagonalDirection) -> list[int]:
-        return _getArms(self.rows, self.cols, row, col, cornerDir)
+    @staticmethod
+    def getArms(row: int, col: int, cornerDir: DiagonalDirection) -> list[int]:
+        return _getArms(BoardTools.rows, BoardTools.cols, row, col, cornerDir)
 
-    def getArmsOfCell(self, row: int, col: int) \
+    @staticmethod
+    def getArmsOfCell(row: int, col: int) \
             -> tuple[list[int], list[int], list[int], list[int]]:
-        return _getArmsOfCell(self.rows, self.cols, row, col)
+        return _getArmsOfCell(BoardTools.rows, BoardTools.cols, row, col)
 
 
 @cache

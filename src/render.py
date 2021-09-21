@@ -3,11 +3,12 @@ This module contains the renderer class
 which draws the current puzzle state onto the screen.
 """
 
+from functools import cache
+from typing import Any, Optional
+
 import pygame as pg
 from pygame.rect import Rect
 from pygame.surface import Surface
-from functools import cache
-from typing import Any, Optional
 
 from src.point import Point
 from src.puzzle.board import Board
@@ -48,7 +49,6 @@ class Renderer:
 
     def __init__(self, board: Board) -> None:
         self.board = board
-        self.boardTools = BoardTools(board.rows, board.cols)
         self.screen: Surface = pg.display.set_mode(SCREEN_SIZE)
         self.baseSurface: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
         self.vtxSurface: Surface = pg.Surface((PUZZ_RECT.width, PUZZ_RECT.height))
@@ -152,7 +152,7 @@ class Renderer:
         doneBorders: set[int] = set()
 
         def _drawBorder(row, col, direction):
-            bdrIdx = self.board.tools.getBorderIdx(row, col, direction)
+            bdrIdx = BoardTools.getBorderIdx(row, col, direction)
             if bdrIdx not in doneBorders:
                 doneBorders.add(bdrIdx)
                 status = self.board.borders[bdrIdx]
@@ -387,7 +387,7 @@ class Renderer:
                         dist = pt.dist(borderPt)
                         if dist < refDist and dist < minDist:
                             minDist = dist
-                            closestIdx = self.boardTools.getBorderIdx(i, j, direction)
+                            closestIdx = BoardTools.getBorderIdx(i, j, direction)
         else:
             for direction in CardinalDirection:
                 coords = self.getBorderCoords(closestCell[0], closestCell[1], direction)
@@ -395,5 +395,5 @@ class Renderer:
                 dist = pt.dist(borderPt)
                 if dist < refDist and dist < minDist:
                     minDist = dist
-                    closestIdx = self.boardTools.getBorderIdx(closestCell[0], closestCell[1], direction)
+                    closestIdx = BoardTools.getBorderIdx(closestCell[0], closestCell[1], direction)
         return closestIdx

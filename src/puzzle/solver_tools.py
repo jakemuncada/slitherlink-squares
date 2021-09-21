@@ -6,6 +6,7 @@ from typing import Union
 
 from src.puzzle.board import Board
 from src.puzzle.cell_info import CellInfo
+from src.puzzle.board_tools import BoardTools
 from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException, OptInt
 
 
@@ -58,7 +59,7 @@ class SolverTools:
         Returns:
             True if the adjacent cell's reqNum matches the query.
         """
-        adjRow, adjCol = board.tools.getCellIdxOfAdjCell(row, col, dxn)
+        adjRow, adjCol = BoardTools.getCellIdxOfAdjCell(row, col, dxn)
         if adjRow is None or adjCol is None:
             return False
         return board.cells[adjRow][adjCol] == query
@@ -79,10 +80,10 @@ class SolverTools:
         Returns:
             True if the two borders are continuous. False otherwise.
         """
-        if not board.tools.isValidBorderIdx(borderIdx1):
+        if not BoardTools.isValidBorderIdx(borderIdx1):
             return False
 
-        if not board.tools.isValidBorderIdx(borderIdx2):
+        if not BoardTools.isValidBorderIdx(borderIdx2):
             return False
 
         # The two borders should not be `BLANK`.
@@ -92,7 +93,7 @@ class SolverTools:
             return False
 
         # Check that the two borders are connected (share a common vertex).
-        commonBorders = board.tools.getCommonVertex(borderIdx1, borderIdx2)
+        commonBorders = BoardTools.getCommonVertex(borderIdx1, borderIdx2)
         if commonBorders is None:
             return False
 
@@ -118,7 +119,7 @@ class SolverTools:
         pokeDirs: set[DiagonalDirection] = set()
 
         reqNum = board.cells[row][col]
-        borders = board.tools.getCellBorders(row, col)
+        borders = BoardTools.getCellBorders(row, col)
         _, countActive, countBlank = self.getStatusCount(board, borders)
 
         if reqNum == 3 and countActive > 1:
@@ -168,13 +169,13 @@ class SolverTools:
 
         currRow, currCol = currCellIdx
 
-        if not board.tools.isValidCellIdx(currRow, currCol):
+        if not BoardTools.isValidCellIdx(currRow, currCol):
             return False
 
         if board.cells[currRow][currCol] == 3:
             return True
 
-        cornerBdrs = board.tools.getCornerBorderIndices(currRow, currCol, dxn.opposite())
+        cornerBdrs = BoardTools.getCornerBorderIndices(currRow, currCol, dxn.opposite())
         _, countActive, _ = self.getStatusCount(board, cornerBdrs)
 
         if countActive > 1:
@@ -187,7 +188,7 @@ class SolverTools:
         if board.cells[currRow][currCol] != 2:
             return False
 
-        nextCellIdx = board.tools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
+        nextCellIdx = BoardTools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
         return self.isCellIndirectPokedByPropagation(board, nextCellIdx, dxn)
 
     def getContinuousUnsetBordersOfCell(self, board: Board, cellInfo: CellInfo) -> list[list[int]]:

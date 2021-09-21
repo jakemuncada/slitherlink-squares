@@ -5,6 +5,7 @@ for example like 0-cells and adjacent 3-cells.
 """
 
 from src.puzzle.board import Board
+from src.puzzle.board_tools import BoardTools
 from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection
 
 
@@ -16,7 +17,7 @@ def solveInit(board: Board) -> None:
         board: The board.
     """
     for row, col in board.reqCells:
-        cellBorders = board.tools.getCellBorders(row, col)
+        cellBorders = BoardTools.getCellBorders(row, col)
 
         if board.cells[row][col] == 0:
             for bdrIdx in cellBorders:
@@ -36,30 +37,30 @@ def _handleAdjacent3Cells(board: Board, row: int, col: int) -> None:
         row: The row index of the 3-cell.
         col: The column index of the 3-cell.
     """
-    cellBorders = board.tools.getCellBorders(row, col)
+    cellBorders = BoardTools.getCellBorders(row, col)
     topB, rightB, botB, leftB = cellBorders
 
     def _setAdj3CellBorders(dxn: CardinalDirection, other3CellIdx: tuple[int, int]) -> None:
         other3CellRow = other3CellIdx[0]
         other3CellCol = other3CellIdx[1]
-        otherCellBorders = board.tools.getCellBorders(other3CellRow, other3CellCol)
+        otherCellBorders = BoardTools.getCellBorders(other3CellRow, other3CellCol)
         bdrFilter = cellBorders + otherCellBorders
 
         if dxn == CardinalDirection.TOP:
             activeBorders = [topB, botB]
-            conn = board.tools.getConnectedBordersList(topB)
+            conn = BoardTools.getConnectedBordersList(topB)
             blankBorders = [bdr for bdr in conn if bdr not in bdrFilter]
         elif dxn == CardinalDirection.BOT:
             activeBorders = [topB, botB]
-            conn = board.tools.getConnectedBordersList(botB)
+            conn = BoardTools.getConnectedBordersList(botB)
             blankBorders = [bdr for bdr in conn if bdr not in bdrFilter]
         elif dxn == CardinalDirection.RIGHT:
             activeBorders = [leftB, rightB]
-            conn = board.tools.getConnectedBordersList(rightB)
+            conn = BoardTools.getConnectedBordersList(rightB)
             blankBorders = [bdr for bdr in conn if bdr not in bdrFilter]
         elif dxn == CardinalDirection.LEFT:
             activeBorders = [leftB, rightB]
-            conn = board.tools.getConnectedBordersList(leftB)
+            conn = BoardTools.getConnectedBordersList(leftB)
             blankBorders = [bdr for bdr in conn if bdr not in bdrFilter]
 
         for bdr in activeBorders:
@@ -92,10 +93,10 @@ def _handleDiagonal3Cells(board: Board, row: int, col: int) -> None:
         row: The row index of the 3-cell.
         col: The column index of the 3-cell.
     """
-    topB, rightB, botB, leftB = board.tools.getCellBorders(row, col)
+    topB, rightB, botB, leftB = BoardTools.getCellBorders(row, col)
 
     def _setCorner(dxn: DiagonalDirection) -> None:
-        armsUL, armsUR, armsLR, armsLL = board.tools.getArmsOfCell(row, col)
+        armsUL, armsUR, armsLR, armsLL = BoardTools.getArmsOfCell(row, col)
 
         if dxn == DiagonalDirection.ULEFT:
             activeBorders = (topB, leftB)
@@ -143,7 +144,7 @@ def hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection) -
     if board.cells[row][col] != 2:
         return False
 
-    nextCellIdx = board.tools.getCellIdxAtDiagCorner(row, col, dxn)
+    nextCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
     if nextCellIdx is None:
         return False
 

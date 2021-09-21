@@ -5,6 +5,7 @@ This module contains the CellInfo class.
 from __future__ import annotations
 
 from src.puzzle.board import Board
+from src.puzzle.board_tools import BoardTools
 from src.puzzle.enums import BorderStatus, OptInt
 
 
@@ -63,7 +64,7 @@ class CellInfo:
         if self.bdrIndices[0] != -1:
             return self.bdrIndices
 
-        self.bdrIndices = board.tools.getCellBorders(self.row, self.col)
+        self.bdrIndices = BoardTools.getCellBorders(self.row, self.col)
         self.topIdx = self.bdrIndices[0]
         self.rightIdx = self.bdrIndices[1]
         self.botIdx = self.bdrIndices[2]
@@ -113,7 +114,7 @@ class CellInfo:
         """
         Get the arms at each corner direction and save it for future use.
         """
-        self.armsTuple = board.tools.getArmsOfCell(self.row, self.col)
+        self.armsTuple = BoardTools.getArmsOfCell(self.row, self.col)
         self.armsUL = self.armsTuple[0]
         self.armsUR = self.armsTuple[1]
         self.armsLR = self.armsTuple[2]
