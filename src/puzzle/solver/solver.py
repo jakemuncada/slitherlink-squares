@@ -809,18 +809,22 @@ class Solver():
         if not foundMove and reqNum == 3 and cellInfo.bdrUnsetCount > 0:
             # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
             for dxn in DiagonalDirection:
-                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn.opposite())
+                oppoDir = dxn.opposite()
+                bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
+                bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                     currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
                     if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
-                        bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
+                        bdrIdx1, bdrIdx2 = cellInfo.cornerBdrs[oppoDir]
                         Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE)
                         Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE)
                         foundMove = True
 
         if not foundMove and reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
             for dxn in DiagonalDirection:
-                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn.opposite())
+                oppoDir = dxn.opposite()
+                bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
+                bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
                 if (bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.BLANK) or \
                         (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.UNSET):
                     currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
