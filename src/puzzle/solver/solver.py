@@ -765,10 +765,10 @@ class Solver():
         # NOTE: For some reason, if the solver-rule below is activated,
         #       the solving time becomes worse.
         #
-        # if cellInfo.bdrActiveCount == 3 and cellInfo.bdrUnsetCount == 1:
-        #     for bdrIdx in cellInfo.unsetBorders:
-        #         Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
-        #         return True
+        if not board.isClone and cellInfo.bdrActiveCount == 3 and cellInfo.bdrUnsetCount == 1:
+            for bdrIdx in cellInfo.unsetBorders:
+                Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
+                return True
         #######################################################################
 
         if reqNum is not None:
