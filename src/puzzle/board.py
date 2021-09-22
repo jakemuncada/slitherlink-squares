@@ -113,11 +113,15 @@ class Board:
             for col in range(self.cols):
                 self.cellGroups[row][col] = None
 
-    def getBordersString(self) -> str:
+    def getBordersString(self, chunkLength: Optional[int] = None) -> str:
         """
         Convert the current state of the board's borders into a string.
         """
-        return ''.join([str(int(bdrStat)) for bdrStat in self.borders])
+        bdrString = ''.join([str(int(bdrStat)) for bdrStat in self.borders])
+        if chunkLength is None:
+            return bdrString
+        chunks = [bdrString[i : i + chunkLength] for i in range(0, len(bdrString), chunkLength)]
+        return '\n'.join(chunks)
 
     def clone(self):
         """
