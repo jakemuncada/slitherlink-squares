@@ -88,6 +88,8 @@ class Control:
             self.solver.initialized = False
         elif keys[pg.K_o]:
             self.renderer.toggleCellGroupOverlay()
+        elif keys[pg.K_PERIOD]:
+            print(self.board.getBordersString(60))
 
     def clickBorder(self, borderIdx: Optional[int]) -> None:
         """
