@@ -107,43 +107,43 @@ class SolverTools:
         return True
 
     @staticmethod
-    def getDirectionsCellIsPokingAt(board: Board, row: int, col: int) \
+    def getDirectionsCellIsPokingAt(board: Board, cellInfo: CellInfo) \
             -> list[DiagonalDirection]:
         """
         Returns a list of corner directions where the given cell is poking at.
 
         Arguments:
             board: The board.
-            row: The row index of the cell.
-            col: The column index of the cell.
+            cellInfo: The cell information.
         """
         pokeDirs: set[DiagonalDirection] = set()
 
-        reqNum = board.cells[row][col]
-        borders = BoardTools.getCellBorders(row, col)
-        _, countActive, countBlank = SolverTools.getStatusCount(board, borders)
-
-        if reqNum == 3 and countActive > 1:
+        if cellInfo.reqNum == 3 and cellInfo.bdrActiveCount > 1:
             for dxn in DiagonalDirection:
-                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
+                bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
+                bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
+                cellInfo
                 if bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.ACTIVE:
                     pokeDirs.add(dxn.opposite())
 
-        if reqNum == 1 and countBlank == 2:
+        if cellInfo.reqNum == 1 and cellInfo.bdrBlankCount == 2:
             for dxn in DiagonalDirection:
-                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
+                bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
+                bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                     pokeDirs.add(dxn)
 
-        if reqNum == 2 and countActive == 1 and countBlank == 1:
+        if cellInfo.reqNum == 2 and cellInfo.bdrActiveCount == 1 and cellInfo.bdrBlankCount == 1:
             for dxn in DiagonalDirection:
-                bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
+                bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
+                bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                     pokeDirs.add(dxn)
                     break
 
         for dxn in DiagonalDirection:
-            bdrStat1, bdrStat2 = board.getCornerStatus(row, col, dxn)
+            bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
+            bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
             if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
                     (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
                 pokeDirs.add(dxn)

@@ -830,7 +830,7 @@ class Solver():
 
         # Check every cell if it is poking a diagonally adjacent cell.
         if not foundMove:
-            pokeDirs = SolverTools.getDirectionsCellIsPokingAt(board, row, col)
+            pokeDirs = SolverTools.getDirectionsCellIsPokingAt(board, cellInfo)
             for pokeDxn in pokeDirs:
                 foundMove = foundMove | self.initiatePoke(self, board, row, col, pokeDxn)
 
