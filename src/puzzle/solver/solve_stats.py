@@ -72,7 +72,8 @@ class SolveStats:
         if self.totalGuessCount == 0:
             return f'{prefix} [NO GUESSING]'
             
+        unsetBorderStr = f'[{self.unsetBorderCountAfterInitialSolve} unset borders]'
         guessCountStr = f'[{self.correctGuessCount} out of {self.totalGuessCount} guesses were correct]'
         guessTimeStr = '[Ave Guess Time: {:.3f}]'.format(self.aveGuessTime)
-        return f'{prefix} {guessCountStr} {guessTimeStr}'
+        return f'{prefix} {unsetBorderStr} {guessCountStr} {guessTimeStr}'
     

@@ -9,9 +9,9 @@ from .puzzle.puzzles import puzzles
 from .puzzle.board_tools import BoardTools
 from src.puzzle.solver.solver import Solver
 
-BOARD_IDX = 2
+BOARD_IDX = 5
 
-TEST_LOOPS = 5
+TEST_LOOPS = 50
 
 def main(idx: Optional[int] = None):
     """Main function."""
@@ -28,23 +28,29 @@ def test(idx: Optional[int] = None, loops: Optional[int] = None):
 
     _totalSolve = 0.0
     _initialSolve = 0.0
+    _totalGuesses = 0
+    _correctGuesses = 0
 
-    for _ in range(loops):
+    for i in range(loops):
         board, answer = createBoard(idx)
         solver = Solver(board)
         solver.isVerbose = False
         stats = solver.solveBoardFromScratch()
-        print(stats)
+        print(f'#{i + 1}:', stats)
 
         if board.getBordersString() != answer:
             raise ValueError('Board result is not equal to answer.')
 
         _totalSolve += stats.totalSolveTime
         _initialSolve += stats.initialSolveTime
+        _correctGuesses += stats.correctGuessCount
+        _totalGuesses += stats.totalGuessCount
 
     print('############################')
     print('Average initial solve time: {:.3f} seconds'.format(_initialSolve / float(loops)))
     print('Average solve time: {:.3f} seconds'.format(_totalSolve / float(loops)))
+    print('Average guess count: {:.3f} guesses'.format(float(_totalGuesses) / float(loops)))
+    print('Average correct guess count: {:.3f} guesses'.format(float(_correctGuesses) / float(loops)))
     print('############################')
 
 def createBoard(idx: int) -> tuple[Board, str]:
