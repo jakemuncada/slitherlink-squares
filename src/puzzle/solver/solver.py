@@ -5,13 +5,14 @@ Solver for Slitherlink-Squares.
 import time
 import random
 import cProfile as profile
-from typing import Callable
+from typing import Callable, Optional
 
 from src.puzzle.board import Board
 from src.puzzle.cell_info import CellInfo
 from src.puzzle.board_tools import BoardTools
 from src.puzzle.solver.tools import SolverTools
 from src.puzzle.solver.initial import solveInit
+from src.puzzle.solver.solve_stats import SolveStats
 from src.puzzle.enums import BorderStatus, CardinalDirection, \
     CornerEntry, DiagonalDirection, InvalidBoardException
 
@@ -27,6 +28,7 @@ class Solver():
         self.cols = board.cols
         self.board = board
         self.initialized = False
+        self.isVerbose = True
         self.prioCells: list[tuple[int, int]] = []
         self.initializePrioritizedCellList()
         self.initializeSubmoduleMethods()
@@ -91,23 +93,57 @@ class Solver():
         Solve the initial clues.
         """
         self.board.reset()
-        self.resetCornerEntry()
         solveInit(self.board)
         self.initialized = True
 
     def profileFromScratch(self) -> None:
+        """
+        Use cProfile to benchmark/profile solveBoardFromScratch.
+        """
         profile.runctx('self.solveBoardFromScratch()', globals(), locals())
 
     def profileCurrentBoard(self) -> None:
+        """
+        Use cProfile to benchmark/profile solveCurrentBoard.
+        """
         profile.runctx('self.solveCurrentBoard()', globals(), locals())
 
-    def solveBoardFromScratch(self, updateUI: Callable = None) -> None:
+    def invalidInitialSolve(self, isComplete: bool, solveStats: SolveStats) -> SolveStats:
+        """
+        Print the error message and return the SolveStats.
+
+        Arguments:
+            isComplete: Whether the board was completed or not.
+            solveStats: The statistics of the solve.
+        """
+        solveStats.solved = False
+        solveStats.endTime = time.time()
+
+        if not isComplete:
+            if self.isVerbose:
+                print('##################################################')
+                print('ERROR: The initial solve [{:.3f} seconds] unexpectedly resulted '
+                'in an invalid board.'.format(solveStats.initialSolveTime))
+                print('##################################################')
+            solveStats.err = 'The initial solve unexpectedly resulted in an invalid board.'
+        else:
+            if self.isVerbose:
+                print('##################################################')
+                print('ERROR: The initial solve [{:.3f} seconds] completed the board '
+                'but was invalid.'.format(solveStats.initialSolveTime))
+                print('##################################################')
+            solveStats.err = 'The initial solve completed the board but was invalid.'
+
+        return solveStats
+
+    def solveBoardFromScratch(self, updateUI: Callable = None) -> SolveStats:
         """
         Solve board from scratch.
+        Returns the statistics of the solve.
         """
         self.board.reset()
 
-        t0 = time.time()
+        solveStats = SolveStats()
 
         solveInit(self.board)
         self.initialized = True
@@ -115,18 +151,81 @@ class Solver():
         if updateUI:
             updateUI()
 
-        isValid, timeElapsed = self._solve(self.board, updateUI)
-        print('Initial solve: {:.3f} seconds'.format(timeElapsed))
+        # Try to solve the board. This is the initial solve.
+        isValid, initialSolveTime = self._solve(self.board, updateUI)
+        if self.isVerbose:
+            print('Initial solve: {:.3f} seconds'.format(initialSolveTime))
+        solveStats.initialSolveTime = initialSolveTime
 
-        assert isValid, '##### ERROR: The first solve unexpectedly ' \
-            'resulted in an invalid board. #####'
+        # The initial solve must not result in an invalid board.
+        if not isValid:
+            return self.invalidInitialSolve(False, solveStats)
+
+        # Get the set of remaining UNSET borders.
+        unsetBorders: set[int] = set()
+        for bdrIdx in range(len(self.board.borders)):
+            if self.board.borders[bdrIdx] == BorderStatus.UNSET:
+                unsetBorders.add(bdrIdx)
+        solveStats.unsetBorderCountAfterInitialSolve = len(unsetBorders)
+
+        # If there are no more UNSET borders, the board is complete.
+        if len(unsetBorders) == 0:
+
+            # If the board passes the validation, the board has been successfully solved.
+            if self.simpleValidation(self.board):
+                if self.isVerbose:
+                    print('##################################################')
+                    print('Solving the board from scratch took {:.3f} seconds '
+                    'without needing to guess.'.format(initialSolveTime))
+                    print('##################################################')
+
+                solveStats.solved = True
+                solveStats.initialSolveTime = initialSolveTime
+                solveStats.endTime = time.time()
+                return solveStats
+
+            # Otherwise, if the board did NOT pass the validation,
+            # there must be something wrong with the Solver.
+            else:
+                return self.invalidInitialSolve(True, solveStats)
+
+        # If the board has not been solved after the initial solve, try to guess moves.
+        solveStats = self.solveBoardByGuessing(unsetBorders, solveStats, updateUI)
+
+        if solveStats.solved and self.isVerbose:
+            print('##################################################')
+            print('Solving the board from scratch took {:.3f} seconds '
+                  'with {} guesses, {} of which were correct.'
+                .format(solveStats.totalSolveTime, solveStats.totalGuessCount, 
+                        solveStats.correctGuessCount))
+            print('##################################################')
+
+        return solveStats
+
+    def solveBoardByGuessing(self, unsetBorders: Optional[set[int]], \
+        solveStats: Optional[SolveStats] = None, \
+        updateUI: Optional[Callable] = None) -> SolveStats:
+        """
+        Solve the given board by guessing moves.
+
+        Arguments:
+            unsetBorders: The set of border indices of the remaining UNSET borders. Optional.
+            solveStats: The statistics of the solve. Optional.
+            updateUI: The method to redraw the board onto the screen. Optional.
+        """
+        isStandalone = False
+        if solveStats is None:
+            solveStats = SolveStats()
+            isStandalone = True
+
+        if unsetBorders is None:
+            unsetBorders: set[int] = set()
+            for bdrIdx in range(len(self.board.borders)):
+                if self.board.borders[bdrIdx] == BorderStatus.UNSET:
+                    unsetBorders.add(bdrIdx)
 
         currGuessIdx = 0
-        guessList = self.getGuesses()
-        print(f'Number of guesses found after initial solve: {len(guessList)}')
-
-        currGuessNum = 1
-        correctGuessCount = 0
+        guessList: list[tuple[int, BorderStatus]] = []
 
         # Continue guessing until the board is completed.
         while True:
@@ -135,44 +234,109 @@ class Solver():
             if updateUI:
                 updateUI()
 
+            # Update the guess list
             if currGuessIdx >= len(guessList):
                 currGuessIdx = 0
                 guessList = self.getGuesses()
-                print(f'Number of guesses found for Guess #{currGuessNum}: {len(guessList)}')
+                if self.isVerbose:
+                    print(f'Number of guesses found: {len(guessList)}')
+
+            correctGuess: Optional[tuple[int, BorderStatus]] = None
 
             while currGuessIdx < len(guessList):
+                # Get a guess move from the list and check if it is still currently UNSET.
                 guessBdrIdx, guessStatus = guessList[currGuessIdx]
-
                 if self.board.borders[guessBdrIdx] == BorderStatus.UNSET:
-                    cloneBoard = self.board.clone()
-                    Solver.setBorder(cloneBoard, guessBdrIdx, guessStatus)
-                    currGuessNum += 1
 
+                    # Once a move is found, clone the board so that the original board
+                    # isn't affected by the guess.
+                    cloneBoard = self.board.clone()
+
+                    # Then, reflect the guess on the cloned board.
+                    Solver.setBorder(cloneBoard, guessBdrIdx, guessStatus)
+                    solveStats.totalGuessCount += 1
+
+                    # After that, we try to solve the board according to the guess.
                     isValid, timeElapsed = self._solve(cloneBoard, updateUI)
 
-                    # isValid = isValid and self.simpleValidation(cloneBoard)
-
-                    # If the guess was invalid, then the opposite move should be valid.
+                    # If the guess resulted in an invalid board, 
+                    # then the opposite move should be the correct one.
                     if not isValid:
-                        print('Guess #{}: border {} to {} [{:.3f} seconds]'.format(
-                            currGuessNum, guessBdrIdx, guessStatus.opposite(), time.time() - t1))
+                        # We set the correct status of the border in the original board.
                         Solver.setBorder(self.board, guessBdrIdx, guessStatus.opposite())
-                        correctGuessCount += 1
+                        # Record the guess and update the statistics.
+                        correctGuess = (guessBdrIdx, guessStatus.opposite())
+                        timeToFindCorrectGuess = time.time() - t1
+                        solveStats.guessTimes.append(timeToFindCorrectGuess)
+
+                        if self.isVerbose:
+                            print('Guess #{}: border {} to {} [{:.3f} seconds]'.format(
+                                solveStats.totalGuessCount,
+                                guessBdrIdx, 
+                                guessStatus.opposite(), 
+                                timeToFindCorrectGuess))
                         break
 
+                # If the guess resulted to a valid board, we cannot conclude anything,
+                # so we just continue to the next guess.
                 currGuessIdx += 1
 
+            # If at this point, a correct guess was not found, restart the loop.
+            if correctGuess is None:
+                continue
+
+            # After we have found a guess that resulted in an invalid board,
+            # only that particular border was set, so from that, we try to solve
+            # the rest of the borders (this time on the original board).
             isValid, timeElapsed = self._solve(self.board, updateUI)
-            print('Solve: {:.3f} seconds'.format(timeElapsed))
+            if self.isVerbose:
+                print('Solve: {:.3f} seconds'.format(timeElapsed))
 
-            if self.board.isComplete:
-                break
+            # At this point, if the board is invalid, then something is wrong with the Solver.
+            if not isValid:
+                if self.isVerbose:
+                    print('##################################################')
+                    print('ERROR: The supposedly correct guess unexpectedly resulted in an invalid board.')
+                    print('##################################################')
+                solveStats.err = 'The supposedly correct guess unexpectedly resulted in an invalid board.'
+                solveStats.endTime = time.time()
+                return solveStats
 
-        print('##################################################')
-        print('Solving the board from scratch took {:.3f} seconds '
-              'with {} guesses, {} of which were correct.'
-              .format(time.time() - t0, currGuessNum, correctGuessCount))
-        print('##################################################')
+            # Update the set of UNSET borders.
+            for bdrIdx in unsetBorders.copy():
+                if self.board.borders[bdrIdx] != BorderStatus.UNSET:
+                    unsetBorders.remove(bdrIdx)
+
+            # If there are still some UNSET borders, continue guessing.
+            if len(unsetBorders) > 0:
+                continue
+            
+            # If there are no more UNSET borders, the board is complete.
+            # If the board passes the validation, the board has been successfully solved.
+            if self.simpleValidation(self.board):
+                solveStats.solved = True
+                solveStats.endTime = time.time()
+
+                if isStandalone and self.isVerbose:
+                    print('##################################################')
+                    print('Solving the board [{:.3f} seconds] took {} guesses, '
+                    '{} of which were correct.'.format(solveStats.totalSolveTime, \
+                        solveStats.totalGuessCount, solveStats.correctGuessCount))
+                    print('##################################################')
+
+            # Otherwise, if the board did NOT pass the validation,
+            # there must be something wrong with the Solver.
+            else:
+                if self.isVerbose:
+                    print('##################################################')
+                    print('ERROR: The supposedly correct guess '
+                        'unexpectedly resulted in an invalid board.')
+                    print('##################################################')
+                solveStats.err = 'The supposedly correct guess ' \
+                    'unexpectedly resulted in an invalid board.'
+                solveStats.endTime = time.time()
+
+            return solveStats
 
     def getGuesses(self) -> list[tuple[int, BorderStatus]]:
         """
@@ -201,17 +365,18 @@ class Solver():
         random.shuffle(highPrio)
         random.shuffle(lowPrio)
 
-        if len(highPrio) + len(lowPrio) == 0:
-            if self.board.isComplete:
-                return []
-            raise AssertionError('The board is not yet complete, but no guesses were found.')
+        # if len(highPrio) + len(lowPrio) == 0:
+        #     if self.board.isComplete:
+        #         return []
+        #     raise AssertionError('The board is not yet complete, but no guesses were found.')
 
         return highPrio + lowPrio
 
-    def solveCurrentBoard(self, updateUI: Callable = None) -> None:
+    def solveCurrentBoard(self, updateUI: Callable = None) -> SolveStats:
         """
         Solve the board starting from its current state.
         """
+        solveStats = SolveStats()
         if not self.initialized:
             solveInit(self.board)
             self.initialized = True
@@ -219,10 +384,16 @@ class Solver():
                 updateUI()
 
         isValid, timeElapsed = self._solve(self.board, updateUI)
-        print('##################################################')
-        print('Solve Current Board: {:.3f} seconds [IsValid: {}]'.format(timeElapsed, isValid))
-        print('Still has {} guesses afterwards.'.format(len(self.getGuesses())))
-        print('##################################################')
+        
+        solveStats.endTime = time.time()
+        solveStats.initialSolveTime = timeElapsed
+        solveStats.err = None if isValid else 'The resulting board is not valid.'
+
+        if self.isVerbose:
+            print('##################################################')
+            print('Solve Current Board: {:.3f} seconds [IsValid: {}]'.format(timeElapsed, isValid))
+            print('Still has {} guesses afterwards.'.format(len(self.getGuesses())))
+            print('##################################################')
 
     def _solve(self, board: Board, updateUI: Callable = None) -> tuple[bool, float]:
         """
@@ -306,26 +477,58 @@ class Solver():
             if cellInfo.bdrActiveCount + cellInfo.bdrUnsetCount < cellInfo.reqNum:
                 return False
 
+        isComplete = True
+        activeBorderCount = 0
+        startActiveBdrIdx = 0
+
         for bdrIdx in range(len(board.borders)):
             bdrStat = board.borders[bdrIdx]
 
-            if bdrStat == BorderStatus.ACTIVE:
+            if bdrStat == BorderStatus.UNSET:
+                isComplete = False
+
+            elif bdrStat == BorderStatus.ACTIVE:
+                activeBorderCount += 1
+                startActiveBdrIdx = bdrIdx
                 conn = BoardTools.getConnectedBorders(bdrIdx)
 
                 _, conn0Active, conn0Blank = SolverTools.getStatusCount(board, conn[0])
                 _, conn1Active, conn1Blank = SolverTools.getStatusCount(board, conn[1])
 
+                # Active borders must not be floating, 
+                # i.e. unconnected to any other border.
                 if conn0Blank == len(conn[0]):
                     return False
                 if conn1Blank == len(conn[1]):
                     return False
 
+                # An active border cannot form an intersection
+                # with more than one other active border.
                 if conn0Active > 1:
                     return False
                 if conn1Active > 1:
                     return False
 
-        return True
+        # If the board is not yet complete, we won't perform the remaining check.
+        if not isComplete:
+            return True
+
+        # If the board is complete, we check if all the ACTIVE borders are connected.
+        connectedBorders: set[int] = set()
+
+        def _addBorder(bdrIdx: int):
+            if bdrIdx in connectedBorders:
+                return
+            connectedBorders.add(bdrIdx)
+            for connBdrIdx in BoardTools.getConnectedBordersList(bdrIdx):
+                if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
+                    _addBorder(connBdrIdx)
+        
+        _addBorder(startActiveBdrIdx)
+
+        # When the board is complete, it is valid if and only if
+        # the ACTIVE borders are connected to each other to form one big loop.
+        return len(connectedBorders) == activeBorderCount
 
     def updateCellGroups(self, board: Board) -> None:
         """
