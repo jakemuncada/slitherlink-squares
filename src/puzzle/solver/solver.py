@@ -787,21 +787,26 @@ class Solver():
                 for dxn in DiagonalDirection:
                     armsStatus = board.getArmsStatus(row, col, dxn)
                     if any(status == BorderStatus.ACTIVE for status in armsStatus):
-                        foundMove = foundMove | self.handleCellPoke(self, board, row, col, dxn)
+                        if self.handleCellPoke(self, board, row, col, dxn):
+                            foundMove = True
 
-                foundMove = foundMove | self.checkThreeTwoThreeTwoPattern(board, cellInfo)
+                if self.checkThreeTwoThreeTwoPattern(board, cellInfo):
+                    foundMove = True
 
             elif reqNum == 2:
-                foundMove = foundMove | self.handle2CellDiagonallyOppositeActiveArms(board, row, col)
+                if self.handle2CellDiagonallyOppositeActiveArms(board, row, col):
+                    foundMove = True
 
         if foundMove:
             return True
 
-        if self.check3CellRectanglePattern(board, cellInfo):
-            return True
+        if cellInfo.reqNum is None and cellInfo.bdrActiveCount == 2 and cellInfo.bdrUnsetCount == 2:
+            if self.check3CellRectanglePattern(board, cellInfo):
+                return True
 
-        if self.checkOuterCellPoking(board, cellInfo):
-            return True
+        if row == 0 or row == board.rows - 1 or col == 0 or col == board.cols - 1:
+            if self.checkOuterCellPoking(board, cellInfo):
+                return True
 
         if not foundMove and reqNum == 3 and cellInfo.bdrUnsetCount > 0:
             # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
@@ -834,7 +839,8 @@ class Solver():
             for dxn in DiagonalDirection:
                 if (row, col, dxn) not in board.pokes:
                     if self.isCellPokingAtDir(board, cellInfo, dxn):
-                        foundMove = foundMove | self.initiatePoke(self, board, row, col, dxn)
+                        if self.initiatePoke(self, board, row, col, dxn):
+                            foundMove = True
 
         if not foundMove:
             foundMove = self.checkCellForContinuousUnsetBorders(self, board, cellInfo)

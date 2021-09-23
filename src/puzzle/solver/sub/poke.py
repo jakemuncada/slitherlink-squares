@@ -44,11 +44,14 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
             (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
         return True
 
-    if cellInfo.reqNum == 3 and cellInfo.bdrActiveCount > 1:
-        bdrStat3 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][0]]
-        bdrStat4 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][1]]
-        if bdrStat3 == BorderStatus.ACTIVE and bdrStat4 == BorderStatus.ACTIVE:
-            return True
+    if cellInfo.reqNum == 3:
+        if cellInfo.bdrActiveCount > 1:
+            bdrStat3 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][0]]
+            bdrStat4 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][1]]
+            if bdrStat3 == BorderStatus.ACTIVE and bdrStat4 == BorderStatus.ACTIVE:
+                return True
+
+        # armIdx1, armIdx2 = board.
 
     return False
 
