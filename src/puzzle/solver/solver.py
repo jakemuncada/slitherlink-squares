@@ -985,30 +985,38 @@ class Solver():
         # If the cell is a topmost cell, check if its TOP border is active.
         if row == 0 and cellInfo.topBdr == BorderStatus.ACTIVE:
             if col > 0:
-                foundMove = foundMove | self.handleCellPoke(self, board, row, col - 1, DiagonalDirection.URIGHT)
+                if self.handleCellPoke(self, board, row, col - 1, DiagonalDirection.URIGHT):
+                    foundMove = True
             if col < self.cols - 1:
-                foundMove = foundMove | self.handleCellPoke(self, board, row, col + 1, DiagonalDirection.ULEFT)
+                if self.handleCellPoke(self, board, row, col + 1, DiagonalDirection.ULEFT):
+                    foundMove = True
 
         # If the cell is a leftmost cell, check if its LEFT border is active.
         if col == 0 and cellInfo.leftBdr == BorderStatus.ACTIVE:
             if row > 0:
-                foundMove = foundMove | self.handleCellPoke(self, board, row - 1, col, DiagonalDirection.LLEFT)
+                if self.handleCellPoke(self, board, row - 1, col, DiagonalDirection.LLEFT):
+                    foundMove = True
             if row < self.rows - 1:
-                foundMove = foundMove | self.handleCellPoke(self, board, row + 1, col, DiagonalDirection.ULEFT)
+                if self.handleCellPoke(self, board, row + 1, col, DiagonalDirection.ULEFT):
+                    foundMove = True
 
         # If the cell is a rightmost cell, check if its RIGHT border is active.
         if col == self.cols - 1 and cellInfo.rightBdr == BorderStatus.ACTIVE:
             if row > 0:
-                foundMove = foundMove | self.handleCellPoke(self, board, row - 1, col, DiagonalDirection.LRIGHT)
+                if self.handleCellPoke(self, board, row - 1, col, DiagonalDirection.LRIGHT):
+                    foundMove = True
             if row < self.rows - 1:
-                foundMove = foundMove | self.handleCellPoke(self, board, row + 1, col, DiagonalDirection.URIGHT)
+                if self.handleCellPoke(self, board, row + 1, col, DiagonalDirection.URIGHT):
+                    foundMove = True
 
         # If the cell is a bottommost cell, check if its BOT border is active.
         if row == self.rows - 1 and cellInfo.botBdr == BorderStatus.ACTIVE:
             if col > 0:
-                foundMove = foundMove | self.handleCellPoke(self, board, row, col - 1, DiagonalDirection.LRIGHT)
+                if self.handleCellPoke(self, board, row, col - 1, DiagonalDirection.LRIGHT):
+                    foundMove = True
             if col < self.cols - 1:
-                foundMove = foundMove | self.handleCellPoke(self, board, row, col + 1, DiagonalDirection.LLEFT)
+                if self.handleCellPoke(self, board, row, col + 1, DiagonalDirection.LLEFT):
+                    foundMove = True
 
         return foundMove
 

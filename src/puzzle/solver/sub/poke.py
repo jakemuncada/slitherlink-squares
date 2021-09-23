@@ -51,8 +51,6 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
             if bdrStat3 == BorderStatus.ACTIVE and bdrStat4 == BorderStatus.ACTIVE:
                 return True
 
-        # armIdx1, armIdx2 = board.
-
     return False
 
 
@@ -216,7 +214,8 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
             if Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
                 foundMove = True
         # Propagate the poke to the next cell
-        foundMove = foundMove | initiatePoke(solver, board, row, col, dxn.opposite())
+        if initiatePoke(solver, board, row, col, dxn.opposite()):
+            foundMove = True
 
     # If a 3-cell is poked, the borders opposite the poked corner should be activated.
     elif reqNum == 3:
@@ -239,7 +238,7 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
                     if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
                         foundMove = True
 
-    if not foundMove:
+    if not foundMove and (row == 0 or col == 0 or row == board.rows - 1 or col == board.cols - 1):
         if row == 0 and col == 0 and dxn == DiagonalDirection.ULEFT:
             raise InvalidBoardException('The board\'s UL corner cell cannot be poked from the ULEFT.')
         elif row == board.rows - 1 and col == 0 and dxn == DiagonalDirection.LLEFT:
@@ -279,6 +278,17 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
                     foundMove = True
             elif dxn == DiagonalDirection.LLEFT and row + 1 < board.rows:
                 bdrIdx = BoardTools.getBorderIdx(row + 1, col, CardinalDirection.LEFT)
+                if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
+                    foundMove = True
+
+        # If the cell is on the rightmost column and is poked from the UPPER/LOWER RIGHT.
+        elif col == board.cols - 1:
+            if dxn == DiagonalDirection.URIGHT and row - 1 >= 0:
+                bdrIdx = BoardTools.getBorderIdx(row - 1, col, CardinalDirection.RIGHT)
+                if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
+                    foundMove = True
+            elif dxn == DiagonalDirection.LRIGHT and row + 1 < board.rows:
+                bdrIdx = BoardTools.getBorderIdx(row + 1, col, CardinalDirection.RIGHT)
                 if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
                     foundMove = True
 
