@@ -11,7 +11,7 @@ from src.puzzle.solver.solver import Solver
 
 BOARD_IDX = 5
 
-TEST_LOOPS = 20
+TEST_LOOPS = 30
 
 
 def main(idx: Optional[int] = None):
@@ -29,6 +29,7 @@ def test(idx: Optional[int] = None, loops: Optional[int] = None):
     loops = loops if loops is not None else TEST_LOOPS
 
     loopCount = 0
+    _unsetCount = None
     _totalSolve = 0.0
     _initialSolve = 0.0
     _totalGuesses = 0
@@ -45,6 +46,11 @@ def test(idx: Optional[int] = None, loops: Optional[int] = None):
             if board.getBordersString() != answer:
                 raise ValueError('Board result is not equal to answer.')
 
+            if i == 0:
+                _unsetCount = stats.unsetBorderCountAfterInitialSolve
+            elif stats.unsetBorderCountAfterInitialSolve != _unsetCount:
+                raise ValueError('The unset border count must be consistent.')
+
             _totalSolve += stats.totalSolveTime
             _initialSolve += stats.initialSolveTime
             _correctGuesses += stats.correctGuessCount
@@ -56,10 +62,11 @@ def test(idx: Optional[int] = None, loops: Optional[int] = None):
 
     if loopCount > 0:
         print('############################')
-        print('Average initial solve time: {:.3f} seconds'.format(_initialSolve / float(loopCount)))
-        print('Average solve time: {:.3f} seconds'.format(_totalSolve / float(loopCount)))
-        print('Average guess count: {:.3f} guesses'.format(float(_totalGuesses) / float(loopCount)))
-        print('Average correct guess count: {:.3f} guesses'.format(float(_correctGuesses) / float(loopCount)))
+        print('Average solve time: __{:.3f}__ seconds'.format(_totalSolve / float(loopCount)))
+        print('Average initial solve time: __{:.3f}__ seconds'.format(_initialSolve / float(loopCount)))
+        print('Number of unset borders: __{}__ borders'.format(_unsetCount))
+        print('Average guess count: __{:.3f}__ guesses'.format(float(_totalGuesses) / float(loopCount)))
+        print('Average correct guess count: __{:.3f}__ guesses'.format(float(_correctGuesses) / float(loopCount)))
         print('############################')
 
 

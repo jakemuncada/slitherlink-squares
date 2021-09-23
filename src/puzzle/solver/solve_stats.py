@@ -59,9 +59,9 @@ class SolveStats:
         return total / float(self.totalGuessCount)
 
     def __str__(self) -> str:
-        prefix = '{}: [Initial: {:.3f}] [Total: {:.3f}]'.format(
-            'SOLVED' if self.solved else 'NOT SOLVED', 
-            self.initialSolveTime, self.totalSolveTime)
+        prefix = '{}: [Total: {:.3f}] [Initial: {:.3f}]'.format(
+            'SOLVED' if self.solved else 'NOT SOLVED',
+            self.totalSolveTime, self.initialSolveTime)
 
         if self.err is not None:
             return f'{prefix} ERROR: {self.err}'
@@ -71,9 +71,8 @@ class SolveStats:
 
         if self.totalGuessCount == 0:
             return f'{prefix} [NO GUESSING]'
-            
+
         unsetBorderStr = f'[{self.unsetBorderCountAfterInitialSolve} unset borders]'
         guessCountStr = f'[{self.correctGuessCount} out of {self.totalGuessCount} guesses were correct]'
         guessTimeStr = '[Ave Guess Time: {:.3f}]'.format(self.aveGuessTime)
         return f'{prefix} {unsetBorderStr} {guessCountStr} {guessTimeStr}'
-    
