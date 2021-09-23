@@ -9,23 +9,32 @@ from .puzzle.puzzles import puzzles
 from .puzzle.board_tools import BoardTools
 from src.puzzle.solver.solver import Solver
 
-BOARD_IDX = 5
+BOARD_IDX = 3
 
 TEST_LOOPS = 30
 
 
-def main(idx: Optional[int] = None):
+def main(puzzleIdx: Optional[int] = None):
     """Main function."""
-    idx = idx if idx is not None else BOARD_IDX
-    board, _ = createBoard(idx)
+    puzzleIdx = puzzleIdx if puzzleIdx is not None else BOARD_IDX
+    board, _ = createBoard(puzzleIdx)
     control = Control(board)
     control.start()
 
 
-def test(idx: Optional[int] = None, loops: Optional[int] = None):
+def testAll(loops: Optional[int] = None, verbose: bool = False):
+    """For testing all puzzles."""
+    loops = loops if loops is not None else TEST_LOOPS
+    print(f'Testing all puzzles ({loops} loops).')
+    for puzzleIdx in range(len(puzzles)):
+        test(puzzleIdx, loops, verbose)
+
+
+def test(puzzleIdx: Optional[int] = None, loops: Optional[int] = None,
+         verbose: bool = True):
     """For testing the solver."""
 
-    idx = idx if idx is not None else BOARD_IDX
+    puzzleIdx = puzzleIdx if puzzleIdx is not None else BOARD_IDX
     loops = loops if loops is not None else TEST_LOOPS
 
     loopCount = 0
@@ -35,13 +44,25 @@ def test(idx: Optional[int] = None, loops: Optional[int] = None):
     _totalGuesses = 0
     _correctGuesses = 0
 
+    def printStats():
+        if loopCount > 0:
+            print()
+            print('#### __Puzzle {}:__'.format(puzzleIdx))
+            print('Average solve time: __{:.3f}__ seconds'.format(_totalSolve / float(loopCount)))
+            print('Average initial solve time: __{:.3f}__ seconds'.format(_initialSolve / float(loopCount)))
+            print('Number of unset borders: __{}__ borders'.format(_unsetCount))
+            print('Average guess count: __{:.3f}__ guesses'.format(float(_totalGuesses) / float(loopCount)))
+            print('Average correct guess count: __{:.3f}__ guesses'.format(float(_correctGuesses) / float(loopCount)))
+
     try:
         for i in range(loops):
-            board, answer = createBoard(idx)
+            board, answer = createBoard(puzzleIdx)
             solver = Solver(board)
             solver.isVerbose = False
             stats = solver.solveBoardFromScratch()
-            print(f'#{i + 1}:', stats)
+
+            if verbose:
+                print(f'#{i + 1}:', stats)
 
             if board.getBordersString() != answer:
                 raise ValueError('Board result is not equal to answer.')
@@ -58,17 +79,10 @@ def test(idx: Optional[int] = None, loops: Optional[int] = None):
             loopCount += 1
 
     except KeyboardInterrupt:
-        pass
+        printStats()
+        raise KeyboardInterrupt
 
-    if loopCount > 0:
-        print()
-        print('#### __Puzzle {}:__'.format(idx))
-        print('Average solve time: __{:.3f}__ seconds'.format(_totalSolve / float(loopCount)))
-        print('Average initial solve time: __{:.3f}__ seconds'.format(_initialSolve / float(loopCount)))
-        print('Number of unset borders: __{}__ borders'.format(_unsetCount))
-        print('Average guess count: __{:.3f}__ guesses'.format(float(_totalGuesses) / float(loopCount)))
-        print('Average correct guess count: __{:.3f}__ guesses'.format(float(_correctGuesses) / float(loopCount)))
-        print()
+    printStats()
 
 
 def createBoard(idx: int) -> tuple[Board, str]:
