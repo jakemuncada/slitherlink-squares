@@ -74,26 +74,34 @@ def solveUsingCornerEntryInfo(solver: Solver, board: Board) -> bool:
     _updateCornerEntries(board)
     for row in range(solver.rows):
         for col in range(solver.cols):
-            cellInfo = CellInfo.init(board, row, col)
-            if cellInfo.bdrUnsetCount > 0:
-                countPoke = 0
-                countSmooth = 0
-                for dxn in DiagonalDirection:
-                    if board.cornerEntries[row][col][dxn] == CornerEntry.POKE:
-                        countPoke += 1
-                        if handleCellPoke(solver, board, row, col, dxn):
-                            foundMove = True
-                    elif board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
-                        countSmooth += 1
-                        if solver.handleSmoothCorner(solver.board, cellInfo, dxn):
-                            foundMove = True
+            reqNum = board.cells[row][col]
+            hasUnset = False
+            for dxn in CardinalDirection:
+                if board.borders[BoardTools.getBorderIdx(row, col, dxn)] == BorderStatus.UNSET:
+                    hasUnset = True
+                    break
 
-                    if cellInfo.reqNum == 0 and countSmooth < 4:
-                        raise InvalidBoardException('0-Cells should have four smooth corners.')
-                    elif cellInfo.reqNum == 3 or cellInfo.reqNum == 1:
-                        if countPoke > 2 or countSmooth > 2:
-                            raise InvalidBoardException('1-Cells and 3-Cells cannot have more than '
-                                                        'two poke corners or two smooth corners.')
+            if not hasUnset:
+                continue
+
+            countPoke = 0
+            countSmooth = 0
+            for dxn in DiagonalDirection:
+                if board.cornerEntries[row][col][dxn] == CornerEntry.POKE:
+                    countPoke += 1
+                    if handleCellPoke(solver, board, row, col, dxn):
+                        foundMove = True
+                elif board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
+                    countSmooth += 1
+                    if solver.handleSmoothCorner(solver.board, row, col, dxn):
+                        foundMove = True
+
+                if reqNum == 0 and countSmooth < 4:
+                    raise InvalidBoardException('0-Cells should have four smooth corners.')
+                elif reqNum == 3 or reqNum == 1:
+                    if countPoke > 2 or countSmooth > 2:
+                        raise InvalidBoardException('1-Cells and 3-Cells cannot have more than '
+                                                    'two poke corners or two smooth corners.')
     return foundMove
 
 

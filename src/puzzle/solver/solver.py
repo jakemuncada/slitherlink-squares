@@ -654,8 +654,7 @@ class Solver():
         def fromAdj(isAdjEqual): return BorderStatus.BLANK if isAdjEqual else BorderStatus.ACTIVE
 
         for row, col in self.prioCells:
-            cellInfo = CellInfo.init(board, row, col)
-
+            reqNum = board.cells[row][col]
             borderIndices = BoardTools.getCellBorders(row, col)
             countUnset, _, _ = SolverTools.getStatusCount(board, borderIndices)
 
@@ -675,40 +674,40 @@ class Solver():
             grpTop, grpRight, grpBot, grpLeft = adjCellGroups
 
             _found = False
-            if cellInfo.reqNum == 1:
+            if reqNum == 1:
                 if grpTop == grpBot and grpTop is not None and grpBot is not None:
-                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
-                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, topIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, botIdx, BorderStatus.BLANK)
                 elif grpTop != grpBot and grpTop is not None and grpBot is not None:
-                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
-                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, leftIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, rightIdx, BorderStatus.BLANK)
 
                 if grpLeft == grpRight and grpLeft is not None and grpRight is not None:
-                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
-                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, leftIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, rightIdx, BorderStatus.BLANK)
                 elif grpLeft != grpRight and grpLeft is not None and grpRight is not None:
-                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
-                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, topIdx, BorderStatus.BLANK)
+                    _found = _found | Solver.setBorder(board, botIdx, BorderStatus.BLANK)
 
-            elif cellInfo.reqNum == 2:
+            elif reqNum == 2:
                 if (grpTop == grpBot and grpTop is not None) or \
                         (grpLeft == grpRight and grpLeft is not None):
                     for dxn in DiagonalDirection:
                         _found = _found | self.initiatePoke(self, board, row, col, dxn)
 
-            elif cellInfo.reqNum == 3:
+            elif reqNum == 3:
                 if grpTop == grpBot and grpTop is not None:
-                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
-                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, topIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, botIdx, BorderStatus.ACTIVE)
                 if grpLeft == grpRight and grpLeft is not None:
-                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
-                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, leftIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, rightIdx, BorderStatus.ACTIVE)
                 if grpTop is not None and grpBot is not None and grpTop != grpBot:
-                    _found = _found | Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.ACTIVE)
-                    _found = _found | Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, leftIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, rightIdx, BorderStatus.ACTIVE)
                 if grpLeft is not None and grpRight is not None and grpLeft != grpRight:
-                    _found = _found | Solver.setBorder(board, cellInfo.topIdx, BorderStatus.ACTIVE)
-                    _found = _found | Solver.setBorder(board, cellInfo.botIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, topIdx, BorderStatus.ACTIVE)
+                    _found = _found | Solver.setBorder(board, botIdx, BorderStatus.ACTIVE)
 
             foundMove = foundMove or _found
             if _found:
@@ -735,7 +734,7 @@ class Solver():
                 if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
                     if grp1 is not None and grp2 is not None:
                         if grp1 == grp2:
-                            foundMove = foundMove | self.handleSmoothCorner(board, cellInfo, dxn)
+                            foundMove = foundMove | self.handleSmoothCorner(board, row, col, dxn)
                         else:
                             foundMove = foundMove | self.initiatePoke(self, board, row, col, dxn)
 
@@ -1211,7 +1210,7 @@ class Solver():
 
         return foundMove
 
-    def handleSmoothCorner(self, board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) -> bool:
+    def handleSmoothCorner(self, board: Board, row: int, col: int, dxn: DiagonalDirection) -> bool:
         """
         Handle the situation when a cell's corner is known to be smooth.
 
@@ -1220,21 +1219,21 @@ class Solver():
 
         Arguments:
             board: The board.
-            cellInfo: The cell information.
+            row: The row index of the cell.
+            col: The column index of the cell.
             dxn: The direction of the corner.
 
         Returns:
             True if a move was found. False otherwise.
         """
         foundMove = False
-        row = cellInfo.row
-        col = cellInfo.col
+        reqNum = board.cells[row][col]
 
         board.cornerEntries[row][col][dxn] = CornerEntry.SMOOTH
-        if cellInfo.reqNum == 2:
+        if reqNum == 2:
             board.cornerEntries[row][col][dxn.opposite()] = CornerEntry.SMOOTH
 
-        cornerIdx1, cornerIdx2 = cellInfo.cornerBdrs[dxn]
+        cornerIdx1, cornerIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn)
         cornerStat1 = board.borders[cornerIdx1]
         cornerStat2 = board.borders[cornerIdx2]
 
@@ -1272,18 +1271,18 @@ class Solver():
                 return True
 
         # A smooth corner on a 1-cell always means that both borders are BLANK.
-        if cellInfo.reqNum == 1:
+        if reqNum == 1:
             for bdrIdx in (cornerIdx1, cornerIdx2):
                 if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
                     foundMove = True
 
         # A smooth corner on a 3-cell always means that both borders are ACTIVE.
-        elif cellInfo.reqNum == 3:
+        elif reqNum == 3:
             for bdrIdx in (cornerIdx1, cornerIdx2):
                 if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
                     foundMove = True
 
-        elif cellInfo.reqNum == 2:
+        elif reqNum == 2:
             # Initiate pokes on the directions where its corners isn't smooth.
             if dxn == DiagonalDirection.ULEFT or dxn == DiagonalDirection.LRIGHT:
                 foundMove = foundMove | self.initiatePoke(self, board, row, col, DiagonalDirection.URIGHT)
@@ -1298,8 +1297,7 @@ class Solver():
             targetCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn.opposite())
             if targetCellIdx is not None:
                 targetRow, targetCol = targetCellIdx
-                targetCellInfo = CellInfo.init(board, targetRow, targetCol)
-                foundMove = foundMove | self.handleSmoothCorner(board, targetCellInfo, dxn)
+                foundMove = foundMove | self.handleSmoothCorner(board, targetRow, targetCol, dxn)
             else:
                 # If there is no diagonally adjacent cell, then this is an outer edge cell,
                 # so we just directly remove the one arm at that direction.
