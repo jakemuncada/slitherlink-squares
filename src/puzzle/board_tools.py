@@ -65,6 +65,10 @@ class BoardTools:
         return _getConnectedBordersList(BoardTools.rows, BoardTools.cols, borderIdx)
 
     @staticmethod
+    def isConnected(borderIdx1: int, borderIdx2: int) -> bool:
+        return _isConnected(BoardTools.rows, BoardTools.cols, borderIdx1, borderIdx2)
+
+    @staticmethod
     def getCommonVertex(borderIdx1: int, borderIdx2: int) -> Optional[list[int]]:
         return _getCommonVertex(BoardTools.rows, BoardTools.cols, borderIdx1, borderIdx2)
 
@@ -340,6 +344,24 @@ def _getConnectedBordersList(rows: int, cols: int, borderIdx: int) -> list[int]:
     """
     conn = _getConnectedBorders(rows, cols, borderIdx)
     return [bdr for bdr in conn[0] + conn[1]]
+
+
+@cache
+def _isConnected(rows: int, cols: int, borderIdx1: int, borderIdx2: int) -> bool:
+    """
+    Returns true if the two borders are connected. Returns false otherwise.
+
+    Arguments:
+        rows: The number of rows in the board.
+        cols: The number of columns in the board.
+        borderIdx1: The index of the first border.
+        borderIdx2: The index of the second border.
+
+    Returns:
+        True if the two borders are connected. False otherwise.
+    """
+    conn = _getConnectedBorders(rows, cols, borderIdx1)
+    return borderIdx2 in conn[0] or borderIdx2 in conn[1]
 
 
 @cache
