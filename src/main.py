@@ -61,13 +61,14 @@ def test(idx: Optional[int] = None, loops: Optional[int] = None):
         pass
 
     if loopCount > 0:
-        print('############################')
+        print()
+        print('#### __Puzzle {}:__'.format(idx))
         print('Average solve time: __{:.3f}__ seconds'.format(_totalSolve / float(loopCount)))
         print('Average initial solve time: __{:.3f}__ seconds'.format(_initialSolve / float(loopCount)))
         print('Number of unset borders: __{}__ borders'.format(_unsetCount))
         print('Average guess count: __{:.3f}__ guesses'.format(float(_totalGuesses) / float(loopCount)))
         print('Average correct guess count: __{:.3f}__ guesses'.format(float(_correctGuesses) / float(loopCount)))
-        print('############################')
+        print()
 
 
 def createBoard(idx: int) -> tuple[Board, str]:
