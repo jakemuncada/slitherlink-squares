@@ -550,6 +550,8 @@ class Solver():
                 return
 
             processedCells.add((row, col))
+            if board.cellGroups[row][col] is not None and board.cellGroups[row][col] != groupId:
+                raise InvalidBoardException(f'Failed to update cell goup of {row},{col}.')
             board.cellGroups[row][col] = groupId
 
             for dxn in CardinalDirection:
