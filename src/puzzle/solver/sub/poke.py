@@ -32,6 +32,10 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
     bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
     bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
 
+    if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
+            (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
+        return True
+
     if cellInfo.reqNum == 1 and cellInfo.bdrBlankCount == 2:
         if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
             return True
@@ -39,10 +43,6 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
     if cellInfo.reqNum == 2 and cellInfo.bdrActiveCount == 1 and cellInfo.bdrBlankCount == 1:
         if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
             return True
-
-    if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
-            (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
-        return True
 
     if cellInfo.reqNum == 3:
         if cellInfo.bdrActiveCount > 1:
@@ -314,6 +314,8 @@ def initiatePoke(solver: Solver, board: Board, origRow: int, origCol: int, dxn: 
     board.pokes.add((origRow, origCol, dxn))
 
     board.cornerEntries[origRow][origCol][dxn] = CornerEntry.POKE
+    if board.cells[origRow][origCol] == 2:
+        board.cornerEntries[origRow][origCol][dxn.opposite()] = CornerEntry.POKE
 
     if dxn == DiagonalDirection.ULEFT:
         targetRow = origRow - 1
