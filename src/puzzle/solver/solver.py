@@ -542,11 +542,37 @@ class Solver():
         """
         processedCells: set[tuple[int, int]] = set()
 
+        adjUL = ((-1, 0), (0, -1))
+        adjUR = ((-1, 0), (0, 1))
+        adjLR = ((1, 0), (0, 1))
+        adjLL = ((1, 0), (0, -1))
+        adjust = (adjUL, adjUR, adjLR, adjLL)
+
+        def _getCellAdjacentToCorner(row: int, col: int, dxn: DiagonalDirection) \
+                -> tuple[tuple[int, int, int], tuple[int, int, int]]:
+            adjRow1, adjCol1 = adjust[dxn][0]
+            adjRow2, adjCol2 = adjust[dxn][1]
+            row1 = row + adjRow1
+            col1 = col + adjCol1
+            row2 = row + adjRow2
+            col2 = col + adjCol2
+            grp1 = 0
+            grp2 = 0
+            if 0 <= row1 < board.rows and 0 <= col1 < board.cols:
+                grp1 = board.cellGroups[row1][col1]
+            if 0 <= row2 < board.rows and 0 <= col2 < board.cols:
+                grp2 = board.cellGroups[row2][col2]
+            tuple1 = (row1, col1, grp1)
+            tuple2 = (row2, col2, grp2)
+            return (tuple1, tuple2)
+
         def _process(row: int, col: int, groupId: int):
             if (row, col) in processedCells:
                 return
 
             if not BoardTools.isValidCellIdx(row, col):
+                if groupId == 1:
+                    raise InvalidBoardException('Cannot set out of bounds as group 1.')
                 return
 
             processedCells.add((row, col))
@@ -562,6 +588,29 @@ class Solver():
                         _process(adjRow, adjCol, groupId)
                     elif bdrStat == BorderStatus.ACTIVE:
                         _process(adjRow, adjCol, 1 if groupId == 0 else 0)
+
+                # Even though dxn is a CardinalDirection, we can treat its integer value
+                # as an equivalent for DiagonalDirection and use it as a list index.
+
+                # If the corner is POKE, the two adjacent cells' groups should be opposite.
+                if board.cornerEntries[row][col][dxn] == CornerEntry.POKE:
+                    cell1, cell2 = _getCellAdjacentToCorner(row, col, dxn)
+                    row1, col1, grp1 = cell1
+                    row2, col2, grp2 = cell2
+                    if grp1 is not None:
+                        _process(row2, col2, 1 if grp1 == 0 else 0)
+                    elif grp2 is not None:
+                        _process(row1, col1, 1 if grp2 == 0 else 0)
+
+                # If the corner is SMOOTH, the two adjacent cell's groups should be equal.
+                elif board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
+                    cell1, cell2 = _getCellAdjacentToCorner(row, col, dxn)
+                    row1, col1, grp1 = cell1
+                    row2, col2, grp2 = cell2
+                    if grp1 is not None:
+                        _process(row2, col2, grp1)
+                    elif grp2 is not None:
+                        _process(row1, col1, grp2)
 
         for row in range(board.rows):
             col = 0
