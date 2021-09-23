@@ -422,15 +422,21 @@ class Solver():
         try:
             moveFound = True
             while moveFound:
-                moveFound = self.solveObvious(board)
-                if not moveFound:
-                    self.updateCellGroups(board)
-                    moveFound = self.checkCellGroupClues(board)
-                if not moveFound:
-                    moveFound = self.removeLoopMakingMove(board)
-                if not moveFound:
-                    if not board.isClone:
-                        moveFound = self.solveUsingCornerEntryInfo(self, board)
+                moveFound = False
+
+                if self.solveObvious(board):
+                    moveFound = True
+
+                self.updateCellGroups(board)
+                if self.checkCellGroupClues(board):
+                    moveFound = True
+
+                if self.removeLoopMakingMove(board):
+                    moveFound = True
+
+                if not board.isClone:
+                    if self.solveUsingCornerEntryInfo(self, board):
+                        moveFound = True
 
                 if updateUI:
                     updateUI()
