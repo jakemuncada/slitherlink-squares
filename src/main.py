@@ -1,6 +1,7 @@
 """Main file."""
 
 import re
+import time
 from typing import Optional
 
 from .control import Control
@@ -22,20 +23,29 @@ def main(puzzleIdx: Optional[int] = None):
     control.start()
 
 
-def testAll(loops: Optional[int] = None, verbose: bool = False):
+def testAll(loops: Optional[int] = None, verbose: Optional[bool] = None):
     """For testing all puzzles."""
+    t0 = time.time()
     loops = loops if loops is not None else TEST_LOOPS
-    print(f'Testing all puzzles ({loops} loops).')
-    for puzzleIdx in range(len(puzzles)):
-        test(puzzleIdx, loops, verbose)
+    verbose = verbose if verbose is not None else False
+
+    try:
+        print(f'Testing all puzzles ({loops} loops).')
+        for puzzleIdx in range(len(puzzles)):
+            test(puzzleIdx, loops, verbose)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print('Testing took {:.3f} seconds.'.format(time.time() - t0))
 
 
 def test(puzzleIdx: Optional[int] = None, loops: Optional[int] = None,
-         verbose: bool = True):
+         verbose: Optional[bool] = None):
     """For testing the solver."""
 
     puzzleIdx = puzzleIdx if puzzleIdx is not None else BOARD_IDX
     loops = loops if loops is not None else TEST_LOOPS
+    verbose = verbose if verbose is not None else True
 
     loopCount = 0
     _unsetCount = None

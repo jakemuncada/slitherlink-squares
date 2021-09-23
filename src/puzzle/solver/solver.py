@@ -691,8 +691,41 @@ class Solver():
         Returns:
             True if such a border was removed. False otherwise.
         """
-        t0 = time.time()
+        borderGoupDict, activeBorders, unsetBorders = self._getBorderGroupDict(board)
 
+        moveFound = False
+        for bdrIdx in unsetBorders:
+            conn = BoardTools.getConnectedBorders(bdrIdx)
+            group1 = None
+            group2 = None
+            for connBdr in conn[0]:
+                if connBdr in activeBorders:
+                    group1 = borderGoupDict[connBdr]
+                    break
+            for connBdr in conn[1]:
+                if connBdr in activeBorders:
+                    group2 = borderGoupDict[connBdr]
+                    break
+
+            if group1 is not None and group2 is not None and group1 == group2:
+                if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
+                    moveFound = True
+
+        return moveFound
+
+    def _getBorderGroupDict(self, board: Board) -> tuple[dict[int, int], set[int], set[int]]:
+        """
+        Get the dictionary containing the border groups of all `ACTIVE` borders.
+
+        Arguments:
+            board: The board.
+
+        Returns:
+            A tuple containing the following:
+                - The dictionary containing the border groups of all ACTIVE borders.
+                - The set of all ACTIVE borders.
+                - The set of all UNSET borders.
+        """
         # Get all active and unset borders
         activeBorders: set[int] = set()
         unsetBorders: set[int] = set()
@@ -703,14 +736,14 @@ class Solver():
                 unsetBorders.add(bdrIdx)
 
         processedBorders: set[BorderStatus] = set()
-        borderGroup: dict[int, int] = {}
+        borderGroupDict: dict[int, int] = {}
 
         # Set all connected active borders to the same group ID
         def _process(idx: int, groupId: int) -> None:
             if idx in processedBorders:
                 return
             processedBorders.add(idx)
-            borderGroup[idx] = groupId
+            borderGroupDict[idx] = groupId
             connList = BoardTools.getConnectedBordersList(idx)
             for connBdr in connList:
                 if connBdr in activeBorders:
@@ -723,25 +756,7 @@ class Solver():
             _process(bdrIdx, currId)
             currId += 1
 
-        moveFound = False
-        for bdrIdx in unsetBorders:
-            conn = BoardTools.getConnectedBorders(bdrIdx)
-            group1 = None
-            group2 = None
-            for connBdr in conn[0]:
-                if connBdr in processedBorders:
-                    group1 = borderGroup[connBdr]
-                    break
-            for connBdr in conn[1]:
-                if connBdr in processedBorders:
-                    group2 = borderGroup[connBdr]
-                    break
-
-            if group1 is not None and group2 is not None and group1 == group2:
-                if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
-                    return True
-
-        return moveFound
+        return borderGroupDict, activeBorders, unsetBorders
 
     def processCell(self, board: Board, row: int, col: int) -> bool:
         """
