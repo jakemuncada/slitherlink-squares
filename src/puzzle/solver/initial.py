@@ -117,16 +117,16 @@ def _handleDiagonal3Cells(board: Board, row: int, col: int) -> None:
             _setBorder(board, bdr, BorderStatus.BLANK)
 
     # Check UL for a 3-cell
-    if _hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.LRIGHT.opposite()):
+    if _hasDiagonal3Cell(board, row - 1, col - 1, DiagonalDirection.ULEFT):
         _setCorner(DiagonalDirection.LRIGHT)
     # Check UR for a 3-cell
-    if _hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.LLEFT.opposite()):
+    if _hasDiagonal3Cell(board, row - 1, col + 1, DiagonalDirection.URIGHT):
         _setCorner(DiagonalDirection.LLEFT)
     # Check LR for a 3-cell
-    if _hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.ULEFT.opposite()):
+    if _hasDiagonal3Cell(board, row + 1, col + 1, DiagonalDirection.LRIGHT):
         _setCorner(DiagonalDirection.ULEFT)
     # Check LL for a 3-cell
-    if _hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.URIGHT.opposite()):
+    if _hasDiagonal3Cell(board, row + 1, col - 1, DiagonalDirection.LLEFT):
         _setCorner(DiagonalDirection.URIGHT)
 
 

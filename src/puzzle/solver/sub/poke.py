@@ -168,6 +168,7 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
     """
     foundMove = False
     reqNum = board.cells[row][col]
+    oppoDxn = dxn.opposite()
 
     board.cornerEntries[row][col][dxn] = CornerEntry.POKE
     if reqNum == 2:
@@ -195,7 +196,7 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
     # If a 1-cell is poked, we know that its sole active border must be on that corner,
     # so we should remove the borders on the opposite corner.
     if reqNum == 1:
-        blankBorders = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
+        blankBorders = BoardTools.getCornerBorderIndices(row, col, oppoDxn)
 
         # The board is invalid if the border opposite from the poke direction is already ACTIVE.
         for bdrIdx in blankBorders:
@@ -204,7 +205,7 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
 
     # If a 2-cell is poked, poke the cell opposite from the original poke direction.
     elif reqNum == 2:
-        bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
+        bdrIdx1, bdrIdx2 = BoardTools.getCornerBorderIndices(row, col, oppoDxn)
         # If 2-cell is poked, check if only one UNSET border is remaining on the opposite side.
         # If so, activate that border.
         if board.borders[bdrIdx1] == BorderStatus.BLANK:
@@ -214,12 +215,12 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
             if Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE):
                 foundMove = True
         # Propagate the poke to the next cell
-        if initiatePoke(solver, board, row, col, dxn.opposite()):
+        if initiatePoke(solver, board, row, col, oppoDxn):
             foundMove = True
 
     # If a 3-cell is poked, the borders opposite the poked corner should be activated.
     elif reqNum == 3:
-        borders = BoardTools.getCornerBorderIndices(row, col, dxn.opposite())
+        borders = BoardTools.getCornerBorderIndices(row, col, oppoDxn)
         for bdrIdx in borders:
             if Solver.setBorder(board, bdrIdx, BorderStatus.ACTIVE):
                 foundMove = True
