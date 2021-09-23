@@ -5,7 +5,7 @@ This is the main entry point into the game.
 import sys
 import pygame as pg
 
-from src.main import main, test, testAll
+from src.main import play, test, testAll
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
     elif options['test']:
         test(puzzleIndex, loops, verbose)
     else:
-        main(puzzleIndex)
+        play(puzzleIndex)
         pg.quit()
         sys.exit()
 

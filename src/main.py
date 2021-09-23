@@ -15,7 +15,7 @@ BOARD_IDX = 3
 TEST_LOOPS = 30
 
 
-def main(puzzleIdx: Optional[int] = None):
+def play(puzzleIdx: Optional[int] = None):
     """Main function."""
     puzzleIdx = puzzleIdx if puzzleIdx is not None else BOARD_IDX
     board, _ = createBoard(puzzleIdx)
