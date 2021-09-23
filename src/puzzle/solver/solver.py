@@ -30,6 +30,7 @@ class Solver():
         self.initialized = False
         self.isVerbose = True
         self.prioCells: list[tuple[int, int]] = []
+        self.threeCells: set[int] = set()
         self.initializePrioritizedCellList()
         self.initializeSubmoduleMethods()
 
@@ -57,10 +58,13 @@ class Solver():
         for row in range(self.board.rows):
             for col in range(self.board.cols):
                 reqNum = self.board.cells[row][col]
-                if reqNum == 1 or reqNum == 3:
+                if reqNum == 1:
                     highPrio.append((row, col))
                 elif reqNum == 2:
                     medPrio.append((row, col))
+                elif reqNum == 3:
+                    highPrio.append((row, col))
+                    self.threeCells.add((row, col))
                 elif reqNum is None or reqNum == 0:
                     lowPrio.append((row, col))
 
@@ -693,7 +697,7 @@ class Solver():
         """
         borderGoupDict, activeBorders, unsetBorders = self._getBorderGroupDict(board)
 
-        moveFound = False
+        foundMove = False
         for bdrIdx in unsetBorders:
             conn = BoardTools.getConnectedBorders(bdrIdx)
             group1 = None
@@ -709,9 +713,93 @@ class Solver():
 
             if group1 is not None and group2 is not None and group1 == group2:
                 if Solver.setBorder(board, bdrIdx, BorderStatus.BLANK):
-                    moveFound = True
+                    foundMove = True
 
-        return moveFound
+        if foundMove:
+            return True
+
+        # foundMove = self.checkThreeCellLoopMakingMoves(board, borderGoupDict)
+
+        return foundMove
+
+    def checkThreeCellLoopMakingMoves(self, board: Board, borderGoupDict: dict[int, int]) -> bool:
+        """
+        Check 3-cells for the case when setting an arm to `ACTIVE` would create a loop.
+
+        Arguments:
+            board: The board.
+            borderGroupDict: The dictionary containing the border group IDs.
+
+        Returns:
+            True if a move was found. False otherwise.
+        """
+
+        def _getOtherArms(cellArms: tuple[list[int], list[int], list[int], list[int]],
+                          exceptDir: DiagonalDirection) -> list[int]:
+            """
+            Get a list of the indices of the arms except on the given direction.
+            This list will only contain UNSET arms.
+            """
+            result: list[int] = []
+            for dxn in DiagonalDirection:
+                if dxn == exceptDir:
+                    continue
+                for armIdx in cellArms[dxn]:
+                    if board.borders[armIdx] == BorderStatus.UNSET:
+                        result.append(armIdx)
+            return result
+
+        foundMove = False
+        for row, col in self.threeCells:
+            cellBorders = set(BoardTools.getCellBorders(row, col))
+            cellArms = BoardTools.getArmsOfCell(row, col)
+            # Look at all the corners of the 3-cell.
+            for dxn in DiagonalDirection:
+                arms = cellArms[dxn]
+                activeArmIdx = None
+
+                # We only want to process the corner where an arm is ACTIVE.
+                # So we look at the arms at this current direction,
+                # and save the border index of the arm that is ACTIVE.
+                for armIdx in arms:
+                    if board.borders[armIdx] != BorderStatus.ACTIVE:
+                        continue
+                    if activeArmIdx is None:
+                        activeArmIdx = armIdx
+                    else:
+                        raise InvalidBoardException('The 3-cell must not have '
+                                                    'two ACTIVE arms on the same corner.')
+
+                # If we haven't found an ACTIVE arm on this corner,
+                # we aren't interested in this corner.
+                if activeArmIdx is None:
+                    continue
+
+                # We look at the UNSET arms except the arms on this direction.
+                otherArms = _getOtherArms(cellArms, dxn)
+                for targetArm in otherArms:
+                    # This targetArm is the arm that we want to make ACTIVE.
+                    # However, if we make it ACTIVE, it might make a loop.
+                    # So we determine whether this arm is connected to a border group
+                    # equal to the above ACTIVE arm's border group.
+                    willCreateLoop = False
+                    connList = BoardTools.getConnectedBordersList(targetArm)
+                    for connBdr in connList:
+                        if connBdr in cellBorders:
+                            continue
+                        if board.borders[connBdr] != BorderStatus.ACTIVE:
+                            continue
+                        if borderGoupDict[connBdr] == borderGoupDict[activeArmIdx]:
+                            willCreateLoop = True
+                            break
+
+                    # If activating the target arm will create a loop,
+                    # this move would obviously be invalid. Therefore, we should make it BLANK.
+                    if willCreateLoop:
+                        if Solver.setBorder(board, targetArm, BorderStatus.BLANK):
+                            foundMove = True
+
+        return foundMove
 
     def _getBorderGroupDict(self, board: Board) -> tuple[dict[int, int], set[int], set[int]]:
         """
@@ -795,7 +883,7 @@ class Solver():
                                             f'the {reqNum} requirement.')
 
             if self.fillOrRemoveRemainingUnsetBorders(board, cellInfo):
-                return True
+                foundMove = True
 
             if reqNum == 3:
                 # If the 3-cell has an active arm, poke it.
@@ -812,18 +900,15 @@ class Solver():
                 if self.handle2CellDiagonallyOppositeActiveArms(board, row, col):
                     foundMove = True
 
-        if foundMove:
-            return True
-
         if cellInfo.reqNum is None and cellInfo.bdrActiveCount == 2 and cellInfo.bdrUnsetCount == 2:
             if self.check3CellRectanglePattern(board, cellInfo):
-                return True
+                foundMove = True
 
         if row == 0 or row == board.rows - 1 or col == 0 or col == board.cols - 1:
             if self.checkOuterCellPoking(board, cellInfo):
-                return True
+                foundMove = True
 
-        if not foundMove and reqNum == 3 and cellInfo.bdrUnsetCount > 0:
+        if reqNum == 3 and cellInfo.bdrUnsetCount > 0:
             # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
             for dxn in DiagonalDirection:
                 oppoDir = dxn.opposite()
@@ -837,7 +922,7 @@ class Solver():
                         Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE)
                         foundMove = True
 
-        if not foundMove and reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
+        if reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
             for dxn in DiagonalDirection:
                 oppoDir = dxn.opposite()
                 bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
@@ -847,18 +932,18 @@ class Solver():
                     currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
                     if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
                         if self.handleCellPoke(self, board, row, col, dxn):
-                            return True
-
-        # Check every cell if it is poking a diagonally adjacent cell.
-        if not foundMove:
-            for dxn in DiagonalDirection:
-                if (row, col, dxn) not in board.pokes:
-                    if self.isCellPokingAtDir(board, cellInfo, dxn):
-                        if self.initiatePoke(self, board, row, col, dxn):
                             foundMove = True
 
-        if not foundMove:
-            foundMove = self.checkCellForContinuousUnsetBorders(self, board, cellInfo)
+        # Check every cell if it is poking a diagonally adjacent cell.
+        for dxn in DiagonalDirection:
+            if (row, col, dxn) not in board.pokes:
+                if self.isCellPokingAtDir(board, cellInfo, dxn):
+                    if self.initiatePoke(self, board, row, col, dxn):
+                        foundMove = True
+
+        # if not foundMove:
+        if self.checkCellForContinuousUnsetBorders(self, board, cellInfo):
+            foundMove = True
 
         return foundMove
 
@@ -907,13 +992,17 @@ class Solver():
 
         if row + 1 < rows and col + 1 < cols and board.cells[row + 1][col + 1] == 3:
             if board.cells[row][col + 1] == 2 and board.cells[row + 1][col] == 2:
-                found = found | self.initiatePoke(self, board, row, col + 1, DiagonalDirection.URIGHT)
-                found = found | self.initiatePoke(self, board, row + 1, col, DiagonalDirection.LLEFT)
+                if self.initiatePoke(self, board, row, col + 1, DiagonalDirection.URIGHT):
+                    found = True
+                if found | self.initiatePoke(self, board, row + 1, col, DiagonalDirection.LLEFT):
+                    found = True
 
         elif row + 1 < rows and col - 1 >= 0 and board.cells[row + 1][col - 1] == 3:
             if board.cells[row][col - 1] == 2 and board.cells[row + 1][col] == 2:
-                found = found | self.initiatePoke(self, board, row, col - 1, DiagonalDirection.URIGHT)
-                found = found | self.initiatePoke(self, board, row + 1, col, DiagonalDirection.LLEFT)
+                if found | self.initiatePoke(self, board, row, col - 1, DiagonalDirection.URIGHT):
+                    found = True
+                if found | self.initiatePoke(self, board, row + 1, col, DiagonalDirection.LLEFT):
+                    found = True
 
         return found
 
