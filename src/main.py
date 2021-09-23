@@ -11,7 +11,8 @@ from src.puzzle.solver.solver import Solver
 
 BOARD_IDX = 5
 
-TEST_LOOPS = 50
+TEST_LOOPS = 20
+
 
 def main(idx: Optional[int] = None):
     """Main function."""
@@ -20,38 +21,47 @@ def main(idx: Optional[int] = None):
     control = Control(board)
     control.start()
 
+
 def test(idx: Optional[int] = None, loops: Optional[int] = None):
     """For testing the solver."""
 
     idx = idx if idx is not None else BOARD_IDX
     loops = loops if loops is not None else TEST_LOOPS
 
+    loopCount = 0
     _totalSolve = 0.0
     _initialSolve = 0.0
     _totalGuesses = 0
     _correctGuesses = 0
 
-    for i in range(loops):
-        board, answer = createBoard(idx)
-        solver = Solver(board)
-        solver.isVerbose = False
-        stats = solver.solveBoardFromScratch()
-        print(f'#{i + 1}:', stats)
+    try:
+        for i in range(loops):
+            board, answer = createBoard(idx)
+            solver = Solver(board)
+            solver.isVerbose = False
+            stats = solver.solveBoardFromScratch()
+            print(f'#{i + 1}:', stats)
 
-        if board.getBordersString() != answer:
-            raise ValueError('Board result is not equal to answer.')
+            if board.getBordersString() != answer:
+                raise ValueError('Board result is not equal to answer.')
 
-        _totalSolve += stats.totalSolveTime
-        _initialSolve += stats.initialSolveTime
-        _correctGuesses += stats.correctGuessCount
-        _totalGuesses += stats.totalGuessCount
+            _totalSolve += stats.totalSolveTime
+            _initialSolve += stats.initialSolveTime
+            _correctGuesses += stats.correctGuessCount
+            _totalGuesses += stats.totalGuessCount
+            loopCount += 1
 
-    print('############################')
-    print('Average initial solve time: {:.3f} seconds'.format(_initialSolve / float(loops)))
-    print('Average solve time: {:.3f} seconds'.format(_totalSolve / float(loops)))
-    print('Average guess count: {:.3f} guesses'.format(float(_totalGuesses) / float(loops)))
-    print('Average correct guess count: {:.3f} guesses'.format(float(_correctGuesses) / float(loops)))
-    print('############################')
+    except KeyboardInterrupt:
+        pass
+
+    if loopCount > 0:
+        print('############################')
+        print('Average initial solve time: {:.3f} seconds'.format(_initialSolve / float(loopCount)))
+        print('Average solve time: {:.3f} seconds'.format(_totalSolve / float(loopCount)))
+        print('Average guess count: {:.3f} guesses'.format(float(_totalGuesses) / float(loopCount)))
+        print('Average correct guess count: {:.3f} guesses'.format(float(_correctGuesses) / float(loopCount)))
+        print('############################')
+
 
 def createBoard(idx: int) -> tuple[Board, str]:
     """
