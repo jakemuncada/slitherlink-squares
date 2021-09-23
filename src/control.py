@@ -113,4 +113,5 @@ class Control:
         if cellIdx is not None:
             print(f'Clicked cell {cellIdx}.')
             print(f'{[str(x) for x in self.board.cornerEntries[cellIdx[0]][cellIdx[1]]]}')
+            self.board.toggleCellGroup(cellIdx[0], cellIdx[1])
         self.renderer.draw()

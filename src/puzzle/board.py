@@ -47,8 +47,8 @@ class Board:
 
         self.pokes: set[tuple[int, int, DiagonalDirection]] = set()
         self.cornerEntries: list[list[list[CornerEntry]]] = \
-            [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, ] 
-            for _ in range(self.cols)] for _ in range(self.rows)]
+            [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN]
+              for _ in range(self.cols)] for _ in range(self.rows)]
 
         self.reqCells = set()
         if cells is not None:
@@ -103,8 +103,8 @@ class Board:
         self.pokes = set()
 
         self.cornerEntries: list[list[list[CornerEntry]]] = \
-            [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, ] 
-            for _ in range(self.cols)] for _ in range(self.rows)]
+            [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN]
+              for _ in range(self.cols)] for _ in range(self.rows)]
 
         for borderIdx in range(len(self.borders)):
             self.borders[borderIdx] = BorderStatus.UNSET
@@ -120,7 +120,7 @@ class Board:
         bdrString = ''.join([str(int(bdrStat)) for bdrStat in self.borders])
         if chunkLength is None:
             return bdrString
-        chunks = [bdrString[i : i + chunkLength] for i in range(0, len(bdrString), chunkLength)]
+        chunks = [bdrString[i: i + chunkLength] for i in range(0, len(bdrString), chunkLength)]
         return '\n'.join(chunks)
 
     def clone(self):
@@ -141,7 +141,7 @@ class Board:
         return clonedBoard
 
     ##################################################
-    # BORDER STATUS SETTERS
+    # SETTERS
     ##################################################
 
     def toggleBorder(self, borderIdx: int) -> None:
@@ -155,8 +155,40 @@ class Board:
         elif self.borders[borderIdx] == BorderStatus.BLANK:
             self.borders[borderIdx] = BorderStatus.UNSET
 
+    def toggleCellGroup(self, row: int, col: int) -> None:
+        """
+        Toggle the cell group of the given cell.
+        """
+        if self.cellGroups[row][col] == None:
+            newCellGroup = 1
+        elif self.cellGroups[row][col] == 1:
+            newCellGroup = 0
+        elif self.cellGroups[row][col] == 0:
+            newCellGroup = None
+
+        adjust = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+
+        doneCells: set[tuple[int, int]] = set()
+
+        def _process(row, col, grp) -> None:
+            if (row, col) in doneCells:
+                return
+            if 0 > row >= self.rows or 0 > col >= self.cols:
+                return
+            doneCells.add((row, col))
+            self.cellGroups[row][col] = grp
+
+            for dxn in CardinalDirection:
+                bdrIdx = BoardTools.getBorderIdx(row, col, dxn)
+                bdrStat = self.borders[bdrIdx]
+                if bdrStat == BorderStatus.BLANK:
+                    adjRow, adjCol = adjust[dxn]
+                    _process(row + adjRow, col + adjCol, grp)
+
+        _process(row, col, newCellGroup)
+
     ##################################################
-    # GET BORDERS
+    # GETTERS
     ##################################################
 
     def getBorderStatus(self, row: int, col: int, direction: CardinalDirection) -> BorderStatus:
