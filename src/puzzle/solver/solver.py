@@ -882,22 +882,29 @@ class Solver():
         processedBorders: set[BorderStatus] = set()
         borderGroupDict: dict[int, int] = {}
 
-        # Set all connected active borders to the same group ID
-        def _process(idx: int, groupId: int) -> None:
+        # Set all connected active borders to the same group ID.
+        def _process(idx: int, groupId: int) -> bool:
             if idx in processedBorders:
-                return
+                return False
+            isConnectedToUnset = False
             processedBorders.add(idx)
             borderGroupDict[idx] = groupId
             connList = BoardTools.getConnectedBordersList(idx)
             for connBdr in connList:
                 if connBdr in activeBorders:
-                    _process(connBdr, groupId)
+                    if _process(connBdr, groupId):
+                        isConnectedToUnset = True
+                if connBdr in unsetBorders:
+                    isConnectedToUnset = True
+            return isConnectedToUnset
 
         currId = 0
         for bdrIdx in activeBorders:
             if bdrIdx in processedBorders:
                 continue
-            _process(bdrIdx, currId)
+            hasConnectedUnsetBdr = _process(bdrIdx, currId)
+            if not hasConnectedUnsetBdr and len(unsetBorders) > 0:
+                raise InvalidBoardException('Loop detected.')
             currId += 1
 
         return borderGroupDict, activeBorders, unsetBorders
