@@ -36,11 +36,13 @@ class Solver():
     def initializeSubmoduleMethods(self) -> None:
         from src.puzzle.solver.sub.poke import initiatePoke
         from src.puzzle.solver.sub.poke import handleCellPoke
+        from src.puzzle.solver.sub.poke import isCellPokingAtDir
         from src.puzzle.solver.sub.poke import solveUsingCornerEntryInfo
         from src.puzzle.solver.sub.cont_unset import checkCellForContinuousUnsetBorders
-    
+
         self.initiatePoke = initiatePoke
         self.handleCellPoke = handleCellPoke
+        self.isCellPokingAtDir = isCellPokingAtDir
         self.solveUsingCornerEntryInfo = solveUsingCornerEntryInfo
         self.checkCellForContinuousUnsetBorders = checkCellForContinuousUnsetBorders
 
@@ -123,14 +125,14 @@ class Solver():
             if self.isVerbose:
                 print('##################################################')
                 print('ERROR: The initial solve [{:.3f} seconds] unexpectedly resulted '
-                'in an invalid board.'.format(solveStats.initialSolveTime))
+                      'in an invalid board.'.format(solveStats.initialSolveTime))
                 print('##################################################')
             solveStats.err = 'The initial solve unexpectedly resulted in an invalid board.'
         else:
             if self.isVerbose:
                 print('##################################################')
                 print('ERROR: The initial solve [{:.3f} seconds] completed the board '
-                'but was invalid.'.format(solveStats.initialSolveTime))
+                      'but was invalid.'.format(solveStats.initialSolveTime))
                 print('##################################################')
             solveStats.err = 'The initial solve completed the board but was invalid.'
 
@@ -176,7 +178,7 @@ class Solver():
                 if self.isVerbose:
                     print('##################################################')
                     print('Solving the board from scratch took {:.3f} seconds '
-                    'without needing to guess.'.format(initialSolveTime))
+                          'without needing to guess.'.format(initialSolveTime))
                     print('##################################################')
 
                 solveStats.solved = True
@@ -196,15 +198,15 @@ class Solver():
             print('##################################################')
             print('Solving the board from scratch took {:.3f} seconds '
                   'with {} guesses, {} of which were correct.'
-                .format(solveStats.totalSolveTime, solveStats.totalGuessCount, 
-                        solveStats.correctGuessCount))
+                  .format(solveStats.totalSolveTime, solveStats.totalGuessCount,
+                          solveStats.correctGuessCount))
             print('##################################################')
 
         return solveStats
 
-    def solveBoardByGuessing(self, unsetBorders: Optional[set[int]], \
-        solveStats: Optional[SolveStats] = None, \
-        updateUI: Optional[Callable] = None) -> SolveStats:
+    def solveBoardByGuessing(self, unsetBorders: Optional[set[int]],
+                             solveStats: Optional[SolveStats] = None,
+                             updateUI: Optional[Callable] = None) -> SolveStats:
         """
         Solve the given board by guessing moves.
 
@@ -259,7 +261,7 @@ class Solver():
                     # After that, we try to solve the board according to the guess.
                     isValid, timeElapsed = self._solve(cloneBoard, updateUI)
 
-                    # If the guess resulted in an invalid board, 
+                    # If the guess resulted in an invalid board,
                     # then the opposite move should be the correct one.
                     if not isValid:
                         # We set the correct status of the border in the original board.
@@ -272,8 +274,8 @@ class Solver():
                         if self.isVerbose:
                             print('Guess #{}: border {} to {} [{:.3f} seconds]'.format(
                                 solveStats.totalGuessCount,
-                                guessBdrIdx, 
-                                guessStatus.opposite(), 
+                                guessBdrIdx,
+                                guessStatus.opposite(),
                                 timeToFindCorrectGuess))
                         break
 
@@ -310,7 +312,7 @@ class Solver():
             # If there are still some UNSET borders, continue guessing.
             if len(unsetBorders) > 0:
                 continue
-            
+
             # If there are no more UNSET borders, the board is complete.
             # If the board passes the validation, the board has been successfully solved.
             if self.simpleValidation(self.board):
@@ -320,8 +322,8 @@ class Solver():
                 if isStandalone and self.isVerbose:
                     print('##################################################')
                     print('Solving the board [{:.3f} seconds] took {} guesses, '
-                    '{} of which were correct.'.format(solveStats.totalSolveTime, \
-                        solveStats.totalGuessCount, solveStats.correctGuessCount))
+                          '{} of which were correct.'.format(solveStats.totalSolveTime,
+                                                             solveStats.totalGuessCount, solveStats.correctGuessCount))
                     print('##################################################')
 
             # Otherwise, if the board did NOT pass the validation,
@@ -330,7 +332,7 @@ class Solver():
                 if self.isVerbose:
                     print('##################################################')
                     print('ERROR: The supposedly correct guess '
-                        'unexpectedly resulted in an invalid board.')
+                          'unexpectedly resulted in an invalid board.')
                     print('##################################################')
                 solveStats.err = 'The supposedly correct guess ' \
                     'unexpectedly resulted in an invalid board.'
@@ -384,7 +386,7 @@ class Solver():
                 updateUI()
 
         isValid, timeElapsed = self._solve(self.board, updateUI)
-        
+
         solveStats.endTime = time.time()
         solveStats.initialSolveTime = timeElapsed
         solveStats.err = None if isValid else 'The resulting board is not valid.'
@@ -495,7 +497,7 @@ class Solver():
                 _, conn0Active, conn0Blank = SolverTools.getStatusCount(board, conn[0])
                 _, conn1Active, conn1Blank = SolverTools.getStatusCount(board, conn[1])
 
-                # Active borders must not be floating, 
+                # Active borders must not be floating,
                 # i.e. unconnected to any other border.
                 if conn0Blank == len(conn[0]):
                     return False
@@ -523,7 +525,7 @@ class Solver():
             for connBdrIdx in BoardTools.getConnectedBordersList(bdrIdx):
                 if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
                     _addBorder(connBdrIdx)
-        
+
         _addBorder(startActiveBdrIdx)
 
         # When the board is complete, it is valid if and only if
@@ -829,9 +831,10 @@ class Solver():
 
         # Check every cell if it is poking a diagonally adjacent cell.
         if not foundMove:
-            pokeDirs = SolverTools.getDirectionsCellIsPokingAt(board, cellInfo)
-            for pokeDxn in pokeDirs:
-                foundMove = foundMove | self.initiatePoke(self, board, row, col, pokeDxn)
+            for dxn in DiagonalDirection:
+                if (row, col, dxn) not in board.pokes:
+                    if self.isCellPokingAtDir(board, cellInfo, dxn):
+                        foundMove = foundMove | self.initiatePoke(self, board, row, col, dxn)
 
         if not foundMove:
             foundMove = self.checkCellForContinuousUnsetBorders(self, board, cellInfo)
@@ -1168,8 +1171,3 @@ class Solver():
                     foundMove = True
 
         return foundMove
-
-    
-
-    
-

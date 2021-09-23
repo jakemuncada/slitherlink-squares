@@ -13,6 +13,46 @@ from src.puzzle.solver.tools import SolverTools
 from src.puzzle.enums import BorderStatus, CardinalDirection, CornerEntry, DiagonalDirection, InvalidBoardException
 
 
+def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) \
+        -> list[DiagonalDirection]:
+    """
+    Determine if the cell is poking towards the given direction.
+
+    Arguments:
+        board: The board.
+        cellInfo: The cell information.
+        dxn: The given direction.
+    """
+    if board.cornerEntries[cellInfo.row][cellInfo.col][dxn] == CornerEntry.SMOOTH:
+        return False
+
+    if board.cornerEntries[cellInfo.row][cellInfo.col][dxn] == CornerEntry.POKE:
+        return True
+
+    bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
+    bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
+
+    if cellInfo.reqNum == 1 and cellInfo.bdrBlankCount == 2:
+        if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+            return True
+
+    if cellInfo.reqNum == 2 and cellInfo.bdrActiveCount == 1 and cellInfo.bdrBlankCount == 1:
+        if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+            return True
+
+    if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
+            (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
+        return True
+
+    if cellInfo.reqNum == 3 and cellInfo.bdrActiveCount > 1:
+        bdrStat3 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][0]]
+        bdrStat4 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][1]]
+        if bdrStat3 == BorderStatus.ACTIVE and bdrStat4 == BorderStatus.ACTIVE:
+            return True
+
+    return False
+
+
 def solveUsingCornerEntryInfo(solver: Solver, board: Board) -> bool:
     """
     Update the CornerEntry types of each corner of each cell,
@@ -63,7 +103,7 @@ def _updateCornerEntries(board: Board) -> None:
     updateFlag = True
 
     def setCornerEntry(cellIdx: Optional[tuple[int, int]], dxn: DiagonalDirection,
-                        newVal: CornerEntry) -> bool:
+                       newVal: CornerEntry) -> bool:
         if cellIdx is None:
             return False
         row, col = cellIdx
@@ -242,7 +282,7 @@ def handleCellPoke(solver: Solver, board: Board, row: int, col: int, dxn: Diagon
     return foundMove
 
 
-def initiatePoke(solver:Solver, board: Board, origRow: int, origCol: int, dxn: DiagonalDirection) -> bool:
+def initiatePoke(solver: Solver, board: Board, origRow: int, origCol: int, dxn: DiagonalDirection) -> bool:
     """
     Initiate a poke on a diagonally adjacent cell from the origin cell.
 

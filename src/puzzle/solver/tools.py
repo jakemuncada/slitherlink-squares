@@ -107,50 +107,6 @@ class SolverTools:
         return True
 
     @staticmethod
-    def getDirectionsCellIsPokingAt(board: Board, cellInfo: CellInfo) \
-            -> list[DiagonalDirection]:
-        """
-        Returns a list of corner directions where the given cell is poking at.
-
-        Arguments:
-            board: The board.
-            cellInfo: The cell information.
-        """
-        pokeDirs: set[DiagonalDirection] = set()
-
-        if cellInfo.reqNum == 3 and cellInfo.bdrActiveCount > 1:
-            for dxn in DiagonalDirection:
-                bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
-                bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
-                cellInfo
-                if bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.ACTIVE:
-                    pokeDirs.add(dxn.opposite())
-
-        if cellInfo.reqNum == 1 and cellInfo.bdrBlankCount == 2:
-            for dxn in DiagonalDirection:
-                bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
-                bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
-                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
-                    pokeDirs.add(dxn)
-
-        if cellInfo.reqNum == 2 and cellInfo.bdrActiveCount == 1 and cellInfo.bdrBlankCount == 1:
-            for dxn in DiagonalDirection:
-                bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
-                bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
-                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
-                    pokeDirs.add(dxn)
-                    break
-
-        for dxn in DiagonalDirection:
-            bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
-            bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
-            if (bdrStat1 == BorderStatus.ACTIVE and bdrStat2 == BorderStatus.BLANK) or \
-                    (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.ACTIVE):
-                pokeDirs.add(dxn)
-
-        return list(pokeDirs)
-
-    @staticmethod
     def isCellIndirectPokedByPropagation(board: Board, currCellIdx: tuple[int, int],
                                          dxn: DiagonalDirection) -> bool:
         """
@@ -192,4 +148,3 @@ class SolverTools:
 
         nextCellIdx = BoardTools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
         return SolverTools.isCellIndirectPokedByPropagation(board, nextCellIdx, dxn)
-
