@@ -102,6 +102,10 @@ class Solver():
             raise InvalidBoardException
         return False
 
+    ###########################################################################
+    # SOLVE INITIAL BOARD
+    ###########################################################################
+
     def solveInitial(self) -> None:
         """
         Solve the initial clues.
@@ -109,6 +113,10 @@ class Solver():
         self.board.reset()
         solveInit(self.board)
         self.initialized = True
+
+    ###########################################################################
+    # PROFILING
+    ###########################################################################
 
     def profileFromScratch(self) -> None:
         """
@@ -122,33 +130,36 @@ class Solver():
         """
         profile.runctx('self.solveCurrentBoard()', globals(), locals())
 
-    def invalidInitialSolve(self, isComplete: bool, solveStats: SolveStats) -> SolveStats:
-        """
-        Print the error message and return the SolveStats.
+    ###########################################################################
+    # SOLVE CURRENT BOARD
+    ###########################################################################
 
-        Arguments:
-            isComplete: Whether the board was completed or not.
-            solveStats: The statistics of the solve.
+    def solveCurrentBoard(self, updateUI: Callable = None) -> SolveStats:
         """
-        solveStats.solved = False
+        Solve the board starting from its current state.
+        """
+        solveStats = SolveStats()
+        if not self.initialized:
+            solveInit(self.board)
+            self.initialized = True
+            if updateUI:
+                updateUI()
+
+        isValid, timeElapsed = self._solve(self.board, updateUI)
+
         solveStats.endTime = time.time()
+        solveStats.initialSolveTime = timeElapsed
+        solveStats.err = None if isValid else 'The resulting board is not valid.'
 
-        if not isComplete:
-            if self.isVerbose:
-                print('##################################################')
-                print('ERROR: The initial solve [{:.3f} seconds] unexpectedly resulted '
-                      'in an invalid board.'.format(solveStats.initialSolveTime))
-                print('##################################################')
-            solveStats.err = 'The initial solve unexpectedly resulted in an invalid board.'
-        else:
-            if self.isVerbose:
-                print('##################################################')
-                print('ERROR: The initial solve [{:.3f} seconds] completed the board '
-                      'but was invalid.'.format(solveStats.initialSolveTime))
-                print('##################################################')
-            solveStats.err = 'The initial solve completed the board but was invalid.'
+        if self.isVerbose:
+            print('##################################################')
+            print('Solve Current Board: {:.3f} seconds [IsValid: {}]'.format(timeElapsed, isValid))
+            print('Still has {} guesses afterwards.'.format(len(self.getGuesses())))
+            print('##################################################')
 
-        return solveStats
+    ###########################################################################
+    # SOLVE BOARD FROM SCRATCH
+    ###########################################################################
 
     def solveBoardFromScratch(self, updateUI: Callable = None) -> SolveStats:
         """
@@ -215,6 +226,209 @@ class Solver():
             print('##################################################')
 
         return solveStats
+
+    ###########################################################################
+    # MAIN SOLVE LOOP
+    ###########################################################################
+
+    def _solve(self, board: Board, updateUI: Callable = None) -> tuple[bool, float]:
+        """
+        Try to solve the given board. Possibly might not completely solve the board.
+
+        Arguments:
+            board: The board to solve.
+            updateUI: The function to render the board onto the screen.
+
+        Returns:
+            A tuple. The first value is the board validity after solving.
+            The second value is the solving duration.
+
+            The board validity is false if an InvalidBoardException was caught while solving.
+            True otherwise. Note that a return value of True does not mean
+            that the board is necessarily valid.
+        """
+        t0 = time.time()
+
+        try:
+            moveFound = True
+            while moveFound:
+                moveFound = False
+
+                if self.solveClues(board):
+                    moveFound = True
+
+                if self.checkCellGroupClues(board, self.prioCells):
+                    moveFound = True
+
+                if self.removeLoopMakingMove(board):
+                    moveFound = True
+
+                if not board.isClone:
+                    if self.solveUsingCornerEntryInfo(board):
+                        moveFound = True
+
+                if updateUI:
+                    updateUI()
+
+        except InvalidBoardException:
+            return (False, time.time() - t0)
+
+        return (True, time.time() - t0)
+
+    ###########################################################################
+    # SOLVE CLUES (CELLS & BORDERS)
+    ###########################################################################
+
+    def solveClues(self, board: Board) -> bool:
+        """
+        Solve the obvious borders. Returns true if a move was found. Returns false otherwise.
+        """
+        foundMove = False
+        processedBorders: set[int] = set()
+
+        for cellIdx in self.prioCells:
+            row, col = cellIdx
+            cellInfo = CellInfo.init(board, row, col)
+            if self.processCell(board, cellInfo):
+                foundMove = True
+
+            if cellInfo.bdrUnsetCount > 1:
+                for dxn in CardinalDirection:
+                    borderIdx = cellInfo.bdrIndices[dxn]
+                    if not borderIdx in processedBorders:
+                        processedBorders.add(borderIdx)
+                        if self.processBorder(board, borderIdx):
+                            foundMove = True
+
+        return foundMove
+
+    ###########################################################################
+    # PROCESS CELL
+    ###########################################################################
+
+    def processCell(self, board: Board, cellInfo: CellInfo) -> bool:
+        """
+        Checks a cell for clues.
+
+        Arguments:
+            board: The board.
+            cellInfo: The cell information.
+
+        Returns:
+            True if a move was found. False otherwise.
+        """
+        foundMove = False
+        row = cellInfo.row
+        col = cellInfo.col
+
+        if cellInfo.bdrActiveCount == 4:
+            raise InvalidBoardException(f'Cell {row},{col} has 4 active borders.')
+
+        if not board.isClone and cellInfo.bdrActiveCount == 3 and cellInfo.bdrUnsetCount == 1:
+            for bdrIdx in cellInfo.unsetBorders:
+                Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
+                return True
+
+        if cellInfo.reqNum is not None:
+
+            if cellInfo.bdrActiveCount > cellInfo.reqNum:
+                raise InvalidBoardException(f'Cell {row},{col} has {cellInfo.bdrActiveCount} '
+                                            f'active borders but requires only {cellInfo.reqNum}.')
+
+            if cellInfo.bdrUnsetCount + cellInfo.bdrActiveCount < cellInfo.reqNum:
+                raise InvalidBoardException(f'Cell {row},{col} only has {cellInfo.bdrUnsetCount} '
+                                            'unset borders which is not enough to get to '
+                                            f'the {cellInfo.reqNum} requirement.')
+
+            if self.fillOrRemoveRemainingUnsetBorders(board, cellInfo):
+                foundMove = True
+
+            if cellInfo.reqNum == 3:
+                # If the 3-cell has an active arm, poke it.
+                for dxn in DiagonalDirection:
+                    armsStatus = board.getArmsStatus(row, col, dxn)
+                    if any(status == BorderStatus.ACTIVE for status in armsStatus):
+                        if self.handleCellPoke(board, row, col, dxn):
+                            foundMove = True
+
+        if row == 0 or row == board.rows - 1 or col == 0 or col == board.cols - 1:
+            if self.checkOuterCellPoking(board, cellInfo):
+                foundMove = True
+
+        if cellInfo.reqNum == 3 and cellInfo.bdrUnsetCount > 0:
+            # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
+            for dxn in DiagonalDirection:
+                oppoDir = dxn.opposite()
+                bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
+                bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
+                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+                    currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
+                    if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
+                        bdrIdx1, bdrIdx2 = cellInfo.cornerBdrs[oppoDir]
+                        Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE)
+                        Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE)
+                        foundMove = True
+
+        if cellInfo.reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
+            for dxn in DiagonalDirection:
+                oppoDir = dxn.opposite()
+                bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
+                bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
+                if (bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.BLANK) or \
+                        (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.UNSET):
+                    currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
+                    if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
+                        if self.handleCellPoke(board, row, col, dxn):
+                            foundMove = True
+
+        for dxn in DiagonalDirection:
+            if (row, col, dxn) not in board.pokes:
+                if self.isCellPokingAtDir(board, cellInfo, dxn):
+                    if self.initiatePoke(board, row, col, dxn):
+                        foundMove = True
+
+        if self.checkCellForContinuousUnsetBorders(board, cellInfo):
+            foundMove = True
+
+        return foundMove
+
+    ###########################################################################
+    # PROCESS BORDER
+    ###########################################################################
+
+    def processBorder(self, board: Board, borderIdx: int) -> bool:
+        """
+        Check a border for clues. Returns true if a move was found.
+        Returns false otherwise.
+        """
+        foundMove = False
+        if board.borders[borderIdx] == BorderStatus.UNSET:
+
+            connBdrList = BoardTools.getConnectedBordersList(borderIdx)
+            for connBdrIdx in connBdrList:
+                if SolverTools.isContinuous(board, borderIdx, connBdrIdx):
+                    if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
+                        if Solver.setBorder(board, borderIdx, BorderStatus.ACTIVE):
+                            return True
+
+            connBdrTuple = BoardTools.getConnectedBorders(borderIdx)
+
+            _, countActive1, countBlank1 = SolverTools.getStatusCount(board, connBdrTuple[0])
+            _, countActive2, countBlank2 = SolverTools.getStatusCount(board, connBdrTuple[1])
+
+            if countActive1 > 1 or countActive2 > 1:
+                if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
+                    return True
+
+            if countBlank1 == len(connBdrTuple[0]) or countBlank2 == len(connBdrTuple[1]):
+                if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
+                    return True
+
+        return foundMove
+
+    ###########################################################################
+    # SOLVE BY GUESSING
+    ###########################################################################
 
     def solveBoardByGuessing(self, unsetBorders: Optional[set[int]],
                              solveStats: Optional[SolveStats] = None,
@@ -386,93 +600,9 @@ class Solver():
 
         return highPrio + lowPrio
 
-    def solveCurrentBoard(self, updateUI: Callable = None) -> SolveStats:
-        """
-        Solve the board starting from its current state.
-        """
-        solveStats = SolveStats()
-        if not self.initialized:
-            solveInit(self.board)
-            self.initialized = True
-            if updateUI:
-                updateUI()
-
-        isValid, timeElapsed = self._solve(self.board, updateUI)
-
-        solveStats.endTime = time.time()
-        solveStats.initialSolveTime = timeElapsed
-        solveStats.err = None if isValid else 'The resulting board is not valid.'
-
-        if self.isVerbose:
-            print('##################################################')
-            print('Solve Current Board: {:.3f} seconds [IsValid: {}]'.format(timeElapsed, isValid))
-            print('Still has {} guesses afterwards.'.format(len(self.getGuesses())))
-            print('##################################################')
-
-    def _solve(self, board: Board, updateUI: Callable = None) -> tuple[bool, float]:
-        """
-        Try to solve the given board. Possibly might not completely solve the board.
-
-        Arguments:
-            board: The board to solve.
-            updateUI: The function to render the board onto the screen.
-
-        Returns:
-            A tuple. The first value is the board validity after solving.
-            The second value is the solving duration.
-
-            The board validity is false if an InvalidBoardException was caught while solving.
-            True otherwise. Note that a return value of True does not mean
-            that the board is necessarily valid.
-        """
-        t0 = time.time()
-
-        try:
-            moveFound = True
-            while moveFound:
-                moveFound = False
-
-                if self.solveObvious(board):
-                    moveFound = True
-
-                if self.checkCellGroupClues(board, self.prioCells):
-                    moveFound = True
-
-                if self.removeLoopMakingMove(board):
-                    moveFound = True
-
-                if not board.isClone:
-                    if self.solveUsingCornerEntryInfo(board):
-                        moveFound = True
-
-                if updateUI:
-                    updateUI()
-
-        except InvalidBoardException:
-            return (False, time.time() - t0)
-
-        return (True, time.time() - t0)
-
-    def solveObvious(self, board: Board) -> bool:
-        """
-        Solve the obvious borders. Returns true if a move was found. Returns false otherwise.
-        """
-        foundMove = False
-        processedBorders: set[int] = set()
-
-        for cellIdx in self.prioCells:
-            row, col = cellIdx
-            if self.processCell(board, row, col):
-                foundMove = True
-
-            for dxn in CardinalDirection:
-                borderIdx = BoardTools.getBorderIdx(row, col, dxn)
-                if not borderIdx in processedBorders:
-                    processedBorders.add(borderIdx)
-                    if self.processBorder(board, borderIdx):
-                        foundMove = True
-
-        return foundMove
+    ###########################################################################
+    # VALIDATION
+    ###########################################################################
 
     def simpleValidation(self, board: Board) -> bool:
         """
@@ -549,95 +679,9 @@ class Solver():
         # the ACTIVE borders are connected to each other to form one big loop.
         return len(connectedBorders) == activeBorderCount
 
-    def processCell(self, board: Board, row: int, col: int) -> bool:
-        """
-        Checks a cell for clues.
-
-        Arguments:
-            board: The board.
-            row: The row index of the cell.
-            col: The column index of the cell.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        foundMove = False
-
-        cellInfo = CellInfo.init(board, row, col)
-        reqNum = board.cells[row][col]
-
-        if cellInfo.bdrActiveCount == 4:
-            raise InvalidBoardException(f'Cell {row},{col} has 4 active borders.')
-
-        if not board.isClone and cellInfo.bdrActiveCount == 3 and cellInfo.bdrUnsetCount == 1:
-            for bdrIdx in cellInfo.unsetBorders:
-                Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
-                return True
-
-        if reqNum is not None:
-
-            if cellInfo.bdrActiveCount > reqNum:
-                raise InvalidBoardException(f'Cell {row},{col} has {cellInfo.bdrActiveCount} '
-                                            f'active borders but requires only {reqNum}.')
-
-            if cellInfo.bdrUnsetCount + cellInfo.bdrActiveCount < reqNum:
-                raise InvalidBoardException(f'Cell {row},{col} only has {cellInfo.bdrUnsetCount} '
-                                            'unset borders which is not enough to get to '
-                                            f'the {reqNum} requirement.')
-
-            if self.fillOrRemoveRemainingUnsetBorders(board, cellInfo):
-                foundMove = True
-
-            if reqNum == 3:
-                # If the 3-cell has an active arm, poke it.
-                for dxn in DiagonalDirection:
-                    armsStatus = board.getArmsStatus(row, col, dxn)
-                    if any(status == BorderStatus.ACTIVE for status in armsStatus):
-                        if self.handleCellPoke(board, row, col, dxn):
-                            foundMove = True
-
-        if row == 0 or row == board.rows - 1 or col == 0 or col == board.cols - 1:
-            if self.checkOuterCellPoking(board, cellInfo):
-                foundMove = True
-
-        if reqNum == 3 and cellInfo.bdrUnsetCount > 0:
-            # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
-            for dxn in DiagonalDirection:
-                oppoDir = dxn.opposite()
-                bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
-                bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
-                if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
-                    currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
-                    if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
-                        bdrIdx1, bdrIdx2 = cellInfo.cornerBdrs[oppoDir]
-                        Solver.setBorder(board, bdrIdx1, BorderStatus.ACTIVE)
-                        Solver.setBorder(board, bdrIdx2, BorderStatus.ACTIVE)
-                        foundMove = True
-
-        if reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
-            for dxn in DiagonalDirection:
-                oppoDir = dxn.opposite()
-                bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
-                bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
-                if (bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.BLANK) or \
-                        (bdrStat1 == BorderStatus.BLANK and bdrStat2 == BorderStatus.UNSET):
-                    currCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
-                    if SolverTools.isCellIndirectPokedByPropagation(board, currCellIdx, dxn):
-                        if self.handleCellPoke(board, row, col, dxn):
-                            foundMove = True
-
-        # Check every cell if it is poking a diagonally adjacent cell.
-        for dxn in DiagonalDirection:
-            if (row, col, dxn) not in board.pokes:
-                if self.isCellPokingAtDir(board, cellInfo, dxn):
-                    if self.initiatePoke(board, row, col, dxn):
-                        foundMove = True
-
-        # if not foundMove:
-        if self.checkCellForContinuousUnsetBorders(board, cellInfo):
-            foundMove = True
-
-        return foundMove
+    ###########################################################################
+    # MISCELLANEOUS
+    ###########################################################################
 
     def fillOrRemoveRemainingUnsetBorders(self, board: Board, cellInfo: CellInfo) -> bool:
         """
@@ -663,32 +707,30 @@ class Solver():
 
         return foundMove
 
-    def processBorder(self, board: Board, borderIdx: int) -> bool:
+    def invalidInitialSolve(self, isComplete: bool, solveStats: SolveStats) -> SolveStats:
         """
-        Check a border for clues. Returns true if a move was found.
-        Returns false otherwise.
+        Print the error message and return the SolveStats.
+
+        Arguments:
+            isComplete: Whether the board was completed or not.
+            solveStats: The statistics of the solve.
         """
-        foundMove = False
-        if board.borders[borderIdx] == BorderStatus.UNSET:
+        solveStats.solved = False
+        solveStats.endTime = time.time()
 
-            connBdrList = BoardTools.getConnectedBordersList(borderIdx)
-            for connBdrIdx in connBdrList:
-                if SolverTools.isContinuous(board, borderIdx, connBdrIdx):
-                    if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
-                        if Solver.setBorder(board, borderIdx, BorderStatus.ACTIVE):
-                            return True
+        if not isComplete:
+            if self.isVerbose:
+                print('##################################################')
+                print('ERROR: The initial solve [{:.3f} seconds] unexpectedly resulted '
+                      'in an invalid board.'.format(solveStats.initialSolveTime))
+                print('##################################################')
+            solveStats.err = 'The initial solve unexpectedly resulted in an invalid board.'
+        else:
+            if self.isVerbose:
+                print('##################################################')
+                print('ERROR: The initial solve [{:.3f} seconds] completed the board '
+                      'but was invalid.'.format(solveStats.initialSolveTime))
+                print('##################################################')
+            solveStats.err = 'The initial solve completed the board but was invalid.'
 
-            connBdrTuple = BoardTools.getConnectedBorders(borderIdx)
-
-            _, countActive1, countBlank1 = SolverTools.getStatusCount(board, connBdrTuple[0])
-            _, countActive2, countBlank2 = SolverTools.getStatusCount(board, connBdrTuple[1])
-
-            if countActive1 > 1 or countActive2 > 1:
-                if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
-                    return True
-
-            if countBlank1 == len(connBdrTuple[0]) or countBlank2 == len(connBdrTuple[1]):
-                if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
-                    return True
-
-        return foundMove
+        return solveStats
