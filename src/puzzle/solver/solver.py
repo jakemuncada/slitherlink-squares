@@ -798,10 +798,6 @@ class Solver():
                 if self.handle2CellDiagonallyOppositeActiveArms(board, row, col):
                     foundMove = True
 
-        if cellInfo.reqNum is None and cellInfo.bdrActiveCount == 2 and cellInfo.bdrUnsetCount == 2:
-            if self.check3CellRectanglePattern(board, cellInfo):
-                foundMove = True
-
         if row == 0 or row == board.rows - 1 or col == 0 or col == board.cols - 1:
             if self.checkOuterCellPoking(board, cellInfo):
                 foundMove = True
@@ -892,77 +888,17 @@ class Solver():
             if board.cells[row][col + 1] == 2 and board.cells[row + 1][col] == 2:
                 if self.initiatePoke(board, row, col + 1, DiagonalDirection.URIGHT):
                     found = True
-                if found | self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT):
+                if self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT):
                     found = True
 
         elif row + 1 < rows and col - 1 >= 0 and board.cells[row + 1][col - 1] == 3:
             if board.cells[row][col - 1] == 2 and board.cells[row + 1][col] == 2:
-                if found | self.initiatePoke(board, row, col - 1, DiagonalDirection.URIGHT):
+                if self.initiatePoke(board, row, col - 1, DiagonalDirection.URIGHT):
                     found = True
-                if found | self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT):
+                if self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT):
                     found = True
 
         return found
-
-    def check3CellRectanglePattern(self, board: Board, cellInfo: CellInfo) -> bool:
-        """
-        Check for the special pattern where an empty cell
-        with an active corner is touching a 3-cell, almost making a mini rectangle.
-
-        Arguments:
-            board: The board.
-            cellInfo: The cell information.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        if cellInfo.reqNum is not None:
-            return False
-
-        if not (cellInfo.bdrActiveCount == 2 and cellInfo.bdrUnsetCount == 2):
-            return False
-
-        row = cellInfo.row
-        col = cellInfo.col
-
-        isTop3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.TOP, 3)
-        isRight3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.RIGHT, 3)
-        isBot3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.BOT, 3)
-        isLeft3Cell = SolverTools.isAdjCellReqNumEqualTo(board, row, col, CardinalDirection.LEFT, 3)
-
-        if all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerUL):
-            if isBot3Cell:
-                Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
-                return True
-            if isRight3Cell:
-                Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
-                return True
-
-        elif all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerUR):
-            if isBot3Cell:
-                Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
-                return True
-            if isLeft3Cell:
-                Solver.setBorder(board, cellInfo.botIdx, BorderStatus.BLANK)
-                return True
-
-        elif all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerLR):
-            if isLeft3Cell:
-                Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
-                return True
-            if isTop3Cell:
-                Solver.setBorder(board, cellInfo.leftIdx, BorderStatus.BLANK)
-                return True
-
-        elif all(board.borders[bdrIdx] == BorderStatus.ACTIVE for bdrIdx in cellInfo.cornerLL):
-            if isRight3Cell:
-                Solver.setBorder(board, cellInfo.topIdx, BorderStatus.BLANK)
-                return True
-            if isTop3Cell:
-                Solver.setBorder(board, cellInfo.rightIdx, BorderStatus.BLANK)
-                return True
-
-        return False
 
     def checkOuterCellPoking(self, board: Board, cellInfo: CellInfo) -> bool:
         """

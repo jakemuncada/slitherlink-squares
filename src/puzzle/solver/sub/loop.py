@@ -43,12 +43,12 @@ def removeLoopMakingMove(board: Board) -> bool:
     if foundMove:
         return True
 
-    # if self._checkThreeCellLoopMakingMoves(board, borderGoupDict):
-    #     foundMove = True
+    if _checkThreeCellLoopMakingMoves(board, borderGoupDict):
+        foundMove = True
 
     return foundMove
 
-def _checkThreeCellLoopMakingMoves(self, board: Board, borderGoupDict: dict[int, int]) -> bool:
+def _checkThreeCellLoopMakingMoves(board: Board, borderGoupDict: dict[int, int]) -> bool:
     """
     Check 3-cells for the case when setting an arm to `ACTIVE` would create a loop.
 
@@ -61,7 +61,7 @@ def _checkThreeCellLoopMakingMoves(self, board: Board, borderGoupDict: dict[int,
     """
 
     def _getOtherArms(cellArms: tuple[list[int], list[int], list[int], list[int]],
-                        exceptDir: DiagonalDirection) -> list[int]:
+                      exceptDir: DiagonalDirection) -> list[int]:
         """
         Get a list of the indices of the arms except on the given direction.
         This list will only contain UNSET arms.
@@ -76,54 +76,58 @@ def _checkThreeCellLoopMakingMoves(self, board: Board, borderGoupDict: dict[int,
         return result
 
     foundMove = False
-    for row, col in self.threeCells:
-        cellBorders = set(BoardTools.getCellBorders(row, col))
-        cellArms = BoardTools.getArmsOfCell(row, col)
-        # Look at all the corners of the 3-cell.
-        for dxn in DiagonalDirection:
-            arms = cellArms[dxn]
-            activeArmIdx = None
-
-            # We only want to process the corner where an arm is ACTIVE.
-            # So we look at the arms at this current direction,
-            # and save the border index of the arm that is ACTIVE.
-            for armIdx in arms:
-                if board.borders[armIdx] != BorderStatus.ACTIVE:
-                    continue
-                if activeArmIdx is None:
-                    activeArmIdx = armIdx
-                else:
-                    raise InvalidBoardException('The 3-cell must not have '
-                                                'two ACTIVE arms on the same corner.')
-
-            # If we haven't found an ACTIVE arm on this corner,
-            # we aren't interested in this corner.
-            if activeArmIdx is None:
+    for row in range(board.rows):
+        for col in range(board.cols):
+            if board.cells[row][col] != 3:
                 continue
 
-            # We look at the UNSET arms except the arms on this direction.
-            otherArms = _getOtherArms(cellArms, dxn)
-            for targetArm in otherArms:
-                # This targetArm is the arm that we want to make ACTIVE.
-                # However, if we make it ACTIVE, it might make a loop.
-                # So we determine whether this arm is connected to a border group
-                # equal to the above ACTIVE arm's border group.
-                willCreateLoop = False
-                connList = BoardTools.getConnectedBordersList(targetArm)
-                for connBdr in connList:
-                    if connBdr in cellBorders:
-                        continue
-                    if board.borders[connBdr] != BorderStatus.ACTIVE:
-                        continue
-                    if borderGoupDict[connBdr] == borderGoupDict[activeArmIdx]:
-                        willCreateLoop = True
-                        break
+            cellBorders = set(BoardTools.getCellBorders(row, col))
+            cellArms = BoardTools.getArmsOfCell(row, col)
+            # Look at all the corners of the 3-cell.
+            for dxn in DiagonalDirection:
+                arms = cellArms[dxn]
+                activeArmIdx = None
 
-                # If activating the target arm will create a loop,
-                # this move would obviously be invalid. Therefore, we should make it BLANK.
-                if willCreateLoop:
-                    if Solver.setBorder(board, targetArm, BorderStatus.BLANK):
-                        foundMove = True
+                # We only want to process the corner where an arm is ACTIVE.
+                # So we look at the arms at this current direction,
+                # and save the border index of the arm that is ACTIVE.
+                for armIdx in arms:
+                    if board.borders[armIdx] != BorderStatus.ACTIVE:
+                        continue
+                    if activeArmIdx is None:
+                        activeArmIdx = armIdx
+                    else:
+                        raise InvalidBoardException('The 3-cell must not have '
+                                                    'two ACTIVE arms on the same corner.')
+
+                # If we haven't found an ACTIVE arm on this corner,
+                # we aren't interested in this corner.
+                if activeArmIdx is None:
+                    continue
+
+                # We look at the UNSET arms except the arms on this direction.
+                otherArms = _getOtherArms(cellArms, dxn)
+                for targetArm in otherArms:
+                    # This targetArm is the arm that we want to make ACTIVE.
+                    # However, if we make it ACTIVE, it might make a loop.
+                    # So we determine whether this arm is connected to a border group
+                    # equal to the above ACTIVE arm's border group.
+                    willCreateLoop = False
+                    connList = BoardTools.getConnectedBordersList(targetArm)
+                    for connBdr in connList:
+                        if connBdr in cellBorders:
+                            continue
+                        if board.borders[connBdr] != BorderStatus.ACTIVE:
+                            continue
+                        if borderGoupDict[connBdr] == borderGoupDict[activeArmIdx]:
+                            willCreateLoop = True
+                            break
+
+                    # If activating the target arm will create a loop,
+                    # this move would obviously be invalid. Therefore, we should make it BLANK.
+                    if willCreateLoop:
+                        if Solver.setBorder(board, targetArm, BorderStatus.BLANK):
+                            foundMove = True
 
     return foundMove
 
