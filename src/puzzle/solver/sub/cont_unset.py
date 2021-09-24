@@ -7,16 +7,16 @@ from src.puzzle.board import Board
 from src.puzzle.cell_info import CellInfo
 from src.puzzle.solver.solver import Solver
 from src.puzzle.board_tools import BoardTools
+from src.puzzle.solver.sub.poke import handleSmoothCorner, initiatePoke
 from src.puzzle.enums import BorderStatus, DiagonalDirection, InvalidBoardException
 
 
-def checkCellForContinuousUnsetBorders(solver: Solver, board: Board, cellInfo: CellInfo) -> bool:
+def checkCellForContinuousUnsetBorders(board: Board, cellInfo: CellInfo) -> bool:
     """
     Check and handle the case when the given cell has continuous unset borders.
     Only cells which have number requirements will be processed.
 
     Arguments:
-        solver: The solver.
         board: The board.
         cellInfo: The cell information.
 
@@ -56,23 +56,22 @@ def checkCellForContinuousUnsetBorders(solver: Solver, board: Board, cellInfo: C
         raise InvalidBoardException('2-Cells cannot have more than two continuous unset corners.')
 
     if cellInfo.reqNum == 1:
-        return _process1Cell(board, solver, cellInfo, corners, cornersStatus)
+        return _process1Cell(board, cellInfo, corners, cornersStatus)
     elif cellInfo.reqNum == 2:
-        return _process2Cell(board, solver, cellInfo, corners, cornersStatus)
+        return _process2Cell(board, cellInfo, corners, cornersStatus)
     elif cellInfo.reqNum == 3:
-        return _process3Cell(board, solver, cellInfo, corners, cornersStatus)
+        return _process3Cell(board, cellInfo, corners, cornersStatus)
 
     raise AssertionError('Impossible to reach here.')
 
 
-def _process1Cell(board: Board, solver: Solver, cellInfo: CellInfo,
-                  corners: list[tuple[int, int]], cornersStatus: tuple[bool, bool, bool, bool]) -> bool:
+def _process1Cell(board: Board, cellInfo: CellInfo, corners: list[tuple[int, int]], 
+                  cornersStatus: tuple[bool, bool, bool, bool]) -> bool:
     """
     Process the 1-cell.
 
     Arguments:
         board: The board.
-        solver: The solver.
         corners: The border indices of the cell's corners.
         cornersStatus: The continuous-unset status of each corner.
 
@@ -83,8 +82,8 @@ def _process1Cell(board: Board, solver: Solver, cellInfo: CellInfo,
     for dxn in DiagonalDirection:
         if cornersStatus[dxn]:
             # Smooth this corner and poke the opposite corner.
-            solver.handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn)
-            solver.initiatePoke(solver, board, cellInfo.row, cellInfo.col, dxn.opposite())
+            handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn)
+            initiatePoke(board, cellInfo.row, cellInfo.col, dxn.opposite())
 
             # If the 1-cell has continuous borders, set them to BLANK.
             Solver.setBorder(board, corners[dxn][0], BorderStatus.BLANK)
@@ -94,14 +93,13 @@ def _process1Cell(board: Board, solver: Solver, cellInfo: CellInfo,
     return foundMove
 
 
-def _process2Cell(board: Board, solver: Solver, cellInfo: CellInfo, corners: list[tuple[int, int]],
+def _process2Cell(board: Board, cellInfo: CellInfo, corners: list[tuple[int, int]],
                   cornersStatus: tuple[bool, bool, bool, bool]) -> bool:
     """
     Process the 2-cell.
 
     Arguments:
         board: The board.
-        solver: The solver.
         cellInfo: The cell information.
         corners: The border indices of the cell's corners.
         arms: The border indices of the cell's arms at each corner.
@@ -115,8 +113,8 @@ def _process2Cell(board: Board, solver: Solver, cellInfo: CellInfo, corners: lis
         if cornersStatus[dxn]:
 
             # Smooth this corner and the opposite corner.
-            solver.handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn)
-            solver.handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn.opposite())
+            handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn)
+            handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn.opposite())
 
             # If there is a BLANK border on the opposite corner,
             # set the continous unset borders to ACTIVE.
@@ -135,14 +133,13 @@ def _process2Cell(board: Board, solver: Solver, cellInfo: CellInfo, corners: lis
     return foundMove
 
 
-def _process3Cell(board: Board, solver: Solver, cellInfo: CellInfo,
-                  corners: list[tuple[int, int]], cornersStatus: tuple[bool, bool, bool, bool]) -> bool:
+def _process3Cell(board: Board, cellInfo: CellInfo, corners: list[tuple[int, int]], 
+                  cornersStatus: tuple[bool, bool, bool, bool]) -> bool:
     """
     Process the 3-cell.
 
     Arguments:
         board: The board.
-        solver: The solver.
         corners: The border indices of the cell's corners.
         arms: The border indices of the cell's arms at each corner.
         cornersStatus: The continuous-unset status of each corner.
@@ -158,8 +155,8 @@ def _process3Cell(board: Board, solver: Solver, cellInfo: CellInfo,
             Solver.setBorder(board, corners[dxn][1], BorderStatus.ACTIVE)
 
             # Smooth this corner and poke the opposite corner.
-            solver.handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn)
-            solver.initiatePoke(solver, board, cellInfo.row, cellInfo.col, dxn.opposite())
+            handleSmoothCorner(board, cellInfo.row, cellInfo.col, dxn)
+            initiatePoke(board, cellInfo.row, cellInfo.col, dxn.opposite())
 
             # Return true because we know we have changed an UNSET border to ACTIVE.
             foundMove = True
