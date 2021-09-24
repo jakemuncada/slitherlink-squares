@@ -339,6 +339,7 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
     if board.cornerEntries[cellInfo.row][cellInfo.col][dxn] == CornerEntry.POKE:
         return True
 
+    oppoDxn = dxn.opposite()
     bdrStat1 = board.borders[cellInfo.cornerBdrs[dxn][0]]
     bdrStat2 = board.borders[cellInfo.cornerBdrs[dxn][1]]
 
@@ -350,14 +351,31 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
         if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
             return True
 
-    if cellInfo.reqNum == 2 and cellInfo.bdrActiveCount == 1 and cellInfo.bdrBlankCount == 1:
-        if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+    if cellInfo.reqNum == 2:
+        # If the 2-cell has an ACTIVE and a BLANK border,
+        if cellInfo.bdrActiveCount == 1 and cellInfo.bdrBlankCount == 1:
+            # But the two borders on this corner are UNSET,
+            # then the 2-cell is poking on this corner.
+            if bdrStat1 == BorderStatus.UNSET and bdrStat2 == BorderStatus.UNSET:
+                return True
+        # Check if the 2-cell has an ACTIVE arm on both this corner and the opposite corner.
+        arms = BoardTools.getArms(cellInfo.row, cellInfo.col, dxn)
+        activeArmsThisDxn = len([idx for idx in arms if board.borders[idx] == BorderStatus.ACTIVE])
+        oppoArms = BoardTools.getArms(cellInfo.row, cellInfo.col, oppoDxn)
+        activeArmsOppoDxn = len([idx for idx in oppoArms if board.borders[idx] == BorderStatus.ACTIVE])
+        
+        if activeArmsThisDxn > 1 and activeArmsOppoDxn > 0:
+            raise InvalidBoardException('2-cell is SMOOTH on one corner and POKE on the opposite corner.')
+        if activeArmsThisDxn > 0 and activeArmsOppoDxn > 1:
+            raise InvalidBoardException('2-cell is SMOOTH on one corner and POKE on the opposite corner.')
+
+        if activeArmsThisDxn == 1 and activeArmsOppoDxn == 1:
             return True
 
     if cellInfo.reqNum == 3:
         if cellInfo.bdrActiveCount > 1:
-            bdrStat3 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][0]]
-            bdrStat4 = board.borders[cellInfo.cornerBdrs[dxn.opposite()][1]]
+            bdrStat3 = board.borders[cellInfo.cornerBdrs[oppoDxn][0]]
+            bdrStat4 = board.borders[cellInfo.cornerBdrs[oppoDxn][1]]
             if bdrStat3 == BorderStatus.ACTIVE and bdrStat4 == BorderStatus.ACTIVE:
                 return True
 
@@ -539,5 +557,3 @@ def _updateCornerEntries(board: Board) -> None:
                 if countUnknown == 1:
                     newCornerEntry = CornerEntry.SMOOTH if countPoke % 2 == 0 else CornerEntry.POKE
                     updateFlag = updateFlag | setCornerEntry((row, col), unknownDxn, newCornerEntry)
-
-

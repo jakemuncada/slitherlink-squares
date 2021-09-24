@@ -596,10 +596,6 @@ class Solver():
                         if self.handleCellPoke(board, row, col, dxn):
                             foundMove = True
 
-            elif reqNum == 2:
-                if self.handle2CellDiagonallyOppositeActiveArms(board, row, col):
-                    foundMove = True
-
         if row == 0 or row == board.rows - 1 or col == 0 or col == board.cols - 1:
             if self.checkOuterCellPoking(board, cellInfo):
                 foundMove = True
@@ -694,43 +690,5 @@ class Solver():
             if countBlank1 == len(connBdrTuple[0]) or countBlank2 == len(connBdrTuple[1]):
                 if Solver.setBorder(board, borderIdx, BorderStatus.BLANK):
                     return True
-
-        return foundMove
-
-    def handle2CellDiagonallyOppositeActiveArms(self, board: Board, row: int, col: int) -> bool:
-        """
-        Handle the case when a 2-cell has active arms in opposite corners.
-
-        Arguments:
-            board: The board.
-            row: The row index of the cell.
-            col: The column index of the cell.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        if board.cells[row][col] != 2:
-            return False
-
-        foundMove = False
-        armsUL, armsUR, armsLR, armsLL = BoardTools.getArmsOfCell(row, col)
-
-        # INVALID: If one corner has 2 active arms and the opposite corner has at least 1 active arm.
-
-        _, activeCount1, _ = SolverTools.getStatusCount(board, armsUL)
-        _, activeCount2, _ = SolverTools.getStatusCount(board, armsLR)
-        if activeCount1 == 1 and activeCount2 == 1:
-            for bdrIdx in armsUL + armsLR:
-                if board.borders[bdrIdx] == BorderStatus.UNSET:
-                    Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
-                    foundMove = True
-
-        _, activeCount1, _ = SolverTools.getStatusCount(board, armsUR)
-        _, activeCount2, _ = SolverTools.getStatusCount(board, armsLL)
-        if activeCount1 == 1 and activeCount2 == 1:
-            for bdrIdx in armsUR + armsLL:
-                if board.borders[bdrIdx] == BorderStatus.UNSET:
-                    Solver.setBorder(board, bdrIdx, BorderStatus.BLANK)
-                    foundMove = True
 
         return foundMove
