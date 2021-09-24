@@ -23,6 +23,18 @@ def play(puzzleIdx: Optional[int] = None):
     control.start()
 
 
+def profile(puzzleIdx: Optional[int] = None):
+    """Use cProfile to benchmark/profile the solving process."""
+    t0 = time.time()
+    puzzleIdx = puzzleIdx if puzzleIdx is not None else BOARD_IDX
+    board, answer = createBoard(puzzleIdx)
+    solver = Solver(board)
+    solver.isVerbose = False
+    solver.profileFromScratch()
+    assert board.getBordersString() == answer, 'Board result is not equal to answer.'
+    print('Total time: {:.3f} seconds'.format(time.time() - t0))
+
+
 def testAll(loops: Optional[int] = None, verbose: Optional[bool] = None):
     """For testing all puzzles."""
     t0 = time.time()

@@ -5,7 +5,7 @@ This is the main entry point into the game.
 import sys
 import pygame as pg
 
-from src.main import play, test, testAll
+from src.main import play, profile, test, testAll
 
 
 def main():
@@ -15,7 +15,9 @@ def main():
     puzzleIndex = options['puzzleIndex']
     verbose = options['verbose']
 
-    if options['testall']:
+    if options['profile']:
+        profile(puzzleIndex)
+    elif options['testall']:
         testAll(loops, verbose)
     elif options['test']:
         test(puzzleIndex, loops, verbose)
@@ -32,6 +34,7 @@ def getOptions() -> dict:
     options = {}
     options['test'] = False
     options['testall'] = False
+    options['profile'] = False
     options['testloops'] = None
     options['puzzleIndex'] = None
     options['verbose'] = None
@@ -42,6 +45,8 @@ def getOptions() -> dict:
             options['test'] = True
         elif sys.argv[idx] in ('--testall',):
             options['testall'] = True
+        elif sys.argv[idx] in ('-p', '--profile'):
+            options['profile'] = True
         elif sys.argv[idx] in ('-v', '--verbose'):
             options['verbose'] = True
         else:
