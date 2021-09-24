@@ -6,7 +6,7 @@ for example like 0-cells and adjacent 3-cells.
 
 from src.puzzle.board import Board
 from src.puzzle.board_tools import BoardTools
-from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection
+from src.puzzle.enums import BorderStatus, CardinalDirection, CornerEntry, DiagonalDirection
 
 
 def solveInit(board: Board) -> None:
@@ -26,6 +26,7 @@ def solveInit(board: Board) -> None:
         elif board.cells[row][col] == 3:
             _handleAdjacent3Cells(board, row, col)
             _handleDiagonal3Cells(board, row, col)
+            _checkThreeTwoThreeTwoPattern(board, row, col)
 
 
 def _handleAdjacent3Cells(board: Board, row: int, col: int) -> None:
@@ -149,6 +150,36 @@ def _hasDiagonal3Cell(board: Board, row: int, col: int, dxn: DiagonalDirection) 
         return False
 
     return _hasDiagonal3Cell(board, nextCellIdx[0], nextCellIdx[1], dxn)
+
+
+def _checkThreeTwoThreeTwoPattern(board: Board, row: int, col: int) -> bool:
+    """
+    Check and handle the case where the two 3-cells and two 2-cells
+    are adjacent each other, forming a 2x2 square.
+
+    Arguments:
+        board: The board.
+        row: The row index of the 3-cell.
+        col: The column index of the 3-cell.
+
+    Returns:
+        True if a move was found. False otherwise.
+    """
+    if BoardTools.isValidCellIdx(row + 1, col + 1) and board.cells[row + 1][col + 1] == 3:
+        if board.cells[row][col + 1] == 2 and board.cells[row + 1][col] == 2:
+            board.cornerEntries[row][col + 1][DiagonalDirection.URIGHT] = CornerEntry.POKE
+            board.cornerEntries[row][col + 1][DiagonalDirection.LLEFT] = CornerEntry.POKE
+            board.cornerEntries[row + 1][col][DiagonalDirection.URIGHT] = CornerEntry.POKE
+            board.cornerEntries[row + 1][col][DiagonalDirection.LLEFT] = CornerEntry.POKE
+            return True
+
+    elif row + 1 < board.rows and col - 1 >= 0 and board.cells[row + 1][col - 1] == 3:
+        if board.cells[row][col - 1] == 2 and board.cells[row + 1][col] == 2:
+            board.cornerEntries[row][col - 1][DiagonalDirection.ULEFT] = CornerEntry.POKE
+            board.cornerEntries[row][col - 1][DiagonalDirection.LRIGHT] = CornerEntry.POKE
+            board.cornerEntries[row + 1][col][DiagonalDirection.ULEFT] = CornerEntry.POKE
+            board.cornerEntries[row + 1][col][DiagonalDirection.LRIGHT] = CornerEntry.POKE
+            return True
 
 
 def _setBorder(board: Board, borderIdx: int, newStatus: BorderStatus) -> None:

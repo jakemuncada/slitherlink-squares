@@ -14,7 +14,7 @@ from src.puzzle.solver.tools import SolverTools
 from src.puzzle.solver.initial import solveInit
 from src.puzzle.solver.solve_stats import SolveStats
 from src.puzzle.enums import BorderStatus, CardinalDirection, \
-        DiagonalDirection, InvalidBoardException
+    DiagonalDirection, InvalidBoardException
 
 
 class Solver():
@@ -596,9 +596,6 @@ class Solver():
                         if self.handleCellPoke(board, row, col, dxn):
                             foundMove = True
 
-                if self.checkThreeTwoThreeTwoPattern(board, cellInfo):
-                    foundMove = True
-
             elif reqNum == 2:
                 if self.handle2CellDiagonallyOppositeActiveArms(board, row, col):
                     foundMove = True
@@ -669,41 +666,6 @@ class Solver():
                     foundMove = True
 
         return foundMove
-
-    def checkThreeTwoThreeTwoPattern(self, board: Board, cellInfo: CellInfo) -> bool:
-        """
-        Check and handle the case where the two 3-cells and two 2-cells
-        are adjacent each other, forming a 2x2 square.
-
-        Arguments:
-            board: The board.
-            row: The row index of the 3-cell.
-            col: The column index of the 3-cell.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        rows = board.rows
-        cols = board.cols
-        row = cellInfo.row
-        col = cellInfo.col
-        found = False
-
-        if row + 1 < rows and col + 1 < cols and board.cells[row + 1][col + 1] == 3:
-            if board.cells[row][col + 1] == 2 and board.cells[row + 1][col] == 2:
-                if self.initiatePoke(board, row, col + 1, DiagonalDirection.URIGHT):
-                    found = True
-                if self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT):
-                    found = True
-
-        elif row + 1 < rows and col - 1 >= 0 and board.cells[row + 1][col - 1] == 3:
-            if board.cells[row][col - 1] == 2 and board.cells[row + 1][col] == 2:
-                if self.initiatePoke(board, row, col - 1, DiagonalDirection.URIGHT):
-                    found = True
-                if self.initiatePoke(board, row + 1, col, DiagonalDirection.LLEFT):
-                    found = True
-
-        return found
 
     def processBorder(self, board: Board, borderIdx: int) -> bool:
         """
