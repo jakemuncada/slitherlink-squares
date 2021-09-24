@@ -365,6 +365,69 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
 
 
 ##################################################
+# CHECK OUTER CELL POKING
+##################################################
+
+def checkOuterCellPoking(board: Board, cellInfo: CellInfo) -> bool:
+    """
+    Check for the special cases when the cells
+    on the outer part of the board is poking their neighbor.
+
+    Arguments:
+        board: The board.
+        cellInfo: The cell information.
+
+    Returns:
+        True if a move was found. False otherwise.
+    """
+    foundMove = False
+
+    if cellInfo.bdrActiveCount == 0:
+        return False
+
+    row = cellInfo.row
+    col = cellInfo.col
+
+    # If the cell is a topmost cell, check if its TOP border is active.
+    if row == 0 and cellInfo.topBdr == BorderStatus.ACTIVE:
+        if col > 0:
+            if handleCellPoke(board, row, col - 1, DiagonalDirection.URIGHT):
+                foundMove = True
+        if col < board.cols - 1:
+            if handleCellPoke(board, row, col + 1, DiagonalDirection.ULEFT):
+                foundMove = True
+
+    # If the cell is a leftmost cell, check if its LEFT border is active.
+    if col == 0 and cellInfo.leftBdr == BorderStatus.ACTIVE:
+        if row > 0:
+            if handleCellPoke(board, row - 1, col, DiagonalDirection.LLEFT):
+                foundMove = True
+        if row < board.rows - 1:
+            if handleCellPoke(board, row + 1, col, DiagonalDirection.ULEFT):
+                foundMove = True
+
+    # If the cell is a rightmost cell, check if its RIGHT border is active.
+    if col == board.cols - 1 and cellInfo.rightBdr == BorderStatus.ACTIVE:
+        if row > 0:
+            if handleCellPoke(board, row - 1, col, DiagonalDirection.LRIGHT):
+                foundMove = True
+        if row < board.rows - 1:
+            if handleCellPoke(board, row + 1, col, DiagonalDirection.URIGHT):
+                foundMove = True
+
+    # If the cell is a bottommost cell, check if its BOT border is active.
+    if row == board.rows - 1 and cellInfo.botBdr == BorderStatus.ACTIVE:
+        if col > 0:
+            if handleCellPoke(board, row, col - 1, DiagonalDirection.LRIGHT):
+                foundMove = True
+        if col < board.cols - 1:
+            if handleCellPoke(board, row, col + 1, DiagonalDirection.LLEFT):
+                foundMove = True
+
+    return foundMove
+
+
+##################################################
 # SOLVE USING CORNER ENTRY INFORMATION
 ##################################################
 

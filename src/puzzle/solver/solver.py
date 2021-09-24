@@ -39,6 +39,7 @@ class Solver():
         from src.puzzle.solver.sub.poke import handleCellPoke
         from src.puzzle.solver.sub.poke import isCellPokingAtDir
         from src.puzzle.solver.sub.poke import handleSmoothCorner
+        from src.puzzle.solver.sub.poke import checkOuterCellPoking
         from src.puzzle.solver.sub.loop import removeLoopMakingMove
         from src.puzzle.solver.sub.poke import solveUsingCornerEntryInfo
         from src.puzzle.solver.sub.cont_unset import checkCellForContinuousUnsetBorders
@@ -47,6 +48,7 @@ class Solver():
         self.handleCellPoke = handleCellPoke
         self.isCellPokingAtDir = isCellPokingAtDir
         self.handleSmoothCorner = handleSmoothCorner
+        self.checkOuterCellPoking = checkOuterCellPoking
         self.removeLoopMakingMove = removeLoopMakingMove
         self.solveUsingCornerEntryInfo = solveUsingCornerEntryInfo
         self.checkCellForContinuousUnsetBorders = checkCellForContinuousUnsetBorders
@@ -899,64 +901,6 @@ class Solver():
                     found = True
 
         return found
-
-    def checkOuterCellPoking(self, board: Board, cellInfo: CellInfo) -> bool:
-        """
-        Check for the special cases when the cells
-        on the outer part of the board is poking their neighbor.
-
-        Arguments:
-            board: The board.
-            cellInfo: The cell information.
-
-        Returns:
-            True if a move was found. False otherwise.
-        """
-        foundMove = False
-
-        if cellInfo.bdrActiveCount == 0:
-            return False
-
-        row = cellInfo.row
-        col = cellInfo.col
-
-        # If the cell is a topmost cell, check if its TOP border is active.
-        if row == 0 and cellInfo.topBdr == BorderStatus.ACTIVE:
-            if col > 0:
-                if self.handleCellPoke(board, row, col - 1, DiagonalDirection.URIGHT):
-                    foundMove = True
-            if col < self.cols - 1:
-                if self.handleCellPoke(board, row, col + 1, DiagonalDirection.ULEFT):
-                    foundMove = True
-
-        # If the cell is a leftmost cell, check if its LEFT border is active.
-        if col == 0 and cellInfo.leftBdr == BorderStatus.ACTIVE:
-            if row > 0:
-                if self.handleCellPoke(board, row - 1, col, DiagonalDirection.LLEFT):
-                    foundMove = True
-            if row < self.rows - 1:
-                if self.handleCellPoke(board, row + 1, col, DiagonalDirection.ULEFT):
-                    foundMove = True
-
-        # If the cell is a rightmost cell, check if its RIGHT border is active.
-        if col == self.cols - 1 and cellInfo.rightBdr == BorderStatus.ACTIVE:
-            if row > 0:
-                if self.handleCellPoke(board, row - 1, col, DiagonalDirection.LRIGHT):
-                    foundMove = True
-            if row < self.rows - 1:
-                if self.handleCellPoke(board, row + 1, col, DiagonalDirection.URIGHT):
-                    foundMove = True
-
-        # If the cell is a bottommost cell, check if its BOT border is active.
-        if row == self.rows - 1 and cellInfo.botBdr == BorderStatus.ACTIVE:
-            if col > 0:
-                if self.handleCellPoke(board, row, col - 1, DiagonalDirection.LRIGHT):
-                    foundMove = True
-            if col < self.cols - 1:
-                if self.handleCellPoke(board, row, col + 1, DiagonalDirection.LLEFT):
-                    foundMove = True
-
-        return foundMove
 
     def processBorder(self, board: Board, borderIdx: int) -> bool:
         """
