@@ -10,7 +10,8 @@ from src.puzzle.board import Board
 from src.puzzle.solver.solver import Solver
 from src.puzzle.board_tools import BoardTools
 from src.puzzle.solver.tools import SolverTools
-from src.puzzle.enums import BorderStatus, CardinalDirection, CornerEntry, DiagonalDirection, InvalidBoardException
+from src.puzzle.enums import BorderStatus, CardinalDirection, \
+    CornerEntry, DiagonalDirection, InvalidBoardException
 
 
 ##################################################
@@ -531,7 +532,6 @@ def _updateCornerEntries(board: Board) -> None:
                 unknownDxn = None
                 countPoke = 0
                 countUnknown = 0
-                reqNum = board.cells[row][col]
                 # Loop through all the corners of the cell.
                 for dxn in DiagonalDirection:
                     # Count the cell's ACTIVE and UNSET arms at this corner.
