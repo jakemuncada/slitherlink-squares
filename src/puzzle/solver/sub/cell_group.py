@@ -118,88 +118,114 @@ def updateCellGroups(board: Board) -> None:
     """
     Update the cell islands information of the board.
     """
-    processedCells: set[tuple[int, int]] = set()
-
     for row in range(board.rows):
-        col = 0
-        if board.getBorderStatus(row, col, CardinalDirection.LEFT) == BorderStatus.BLANK:
-            _updateCell(board, row, col, 0, processedCells)
-        elif board.getBorderStatus(row, col, CardinalDirection.LEFT) == BorderStatus.ACTIVE:
-            _updateCell(board, row, col, 1, processedCells)
+        for col in range(board.cols):
+            # Process only the cells whose cell group is not yet known.
+            if board.cellGroups[row][col] is not None:
+                continue
 
-        col = board.cols - 1
-        if board.getBorderStatus(row, col, CardinalDirection.RIGHT) == BorderStatus.BLANK:
-            _updateCell(board, row, col, 0, processedCells)
-        elif board.getBorderStatus(row, col, CardinalDirection.RIGHT) == BorderStatus.ACTIVE:
-            _updateCell(board, row, col, 1, processedCells)
+            for dxn in CardinalDirection:
+                # Look for the borders of this cell that are either BLANK or ACTIVE.
+                bdrStat = board.getBorderStatus(row, col, dxn)
+                if bdrStat == BorderStatus.UNSET:
+                    continue
 
-    for col in range(board.cols):
-        row = 0
-        if board.getBorderStatus(row, col, CardinalDirection.TOP) == BorderStatus.BLANK:
-            _updateCell(board, row, col, 0, processedCells)
-        elif board.getBorderStatus(row, col, CardinalDirection.TOP) == BorderStatus.ACTIVE:
-            _updateCell(board, row, col, 1, processedCells)
+                # Get the group ID of the cell adjacent to this direction.
+                adjRow, adjCol = BoardTools.getCellIdxOfAdjCell(row, col, dxn)
+                grp = _getCellGroup(board, adjRow, adjCol)
+                # If the group of the adjacent cell is also unknown, continue on.
+                if grp is None:
+                    continue
 
-        row = board.rows - 1
-        if board.getBorderStatus(row, col, CardinalDirection.BOT) == BorderStatus.BLANK:
-            _updateCell(board, row, col, 0, processedCells)
-        elif board.getBorderStatus(row, col, CardinalDirection.BOT) == BorderStatus.ACTIVE:
-            _updateCell(board, row, col, 1, processedCells)
+                # If the border is ACTIVE, this cell's group must be OPPOSITE to
+                # the adjacent cell's group.
+                if bdrStat == BorderStatus.ACTIVE:
+                    _setCellGroup(board, row, col, 1 if grp == 0 else 0)
+
+                # If the border is BLANK, this cell's group must be EQUAL to
+                # the adjacent cell's group.
+                elif bdrStat == BorderStatus.BLANK:
+                    _setCellGroup(board, row, col, grp)
+
+                # The following processing will involve corner entries,
+                # so we don't need to do this for cloned boards.
+                if board.isClone:
+                    continue
+
+                for dxn in DiagonalDirection:
+                    # Look at the corners of this cell. If the corner entry is UNKNOWN,
+                    # we proceed to the next corner.
+                    if board.cornerEntries[row][col] == CornerEntry.UNKNOWN:
+                        continue
+
+                    # Get the indices of the cells adjacent to this corner.
+                    cellIdx1, cellIdx2 = BoardTools.getCellIndicesAdjacentToCorner(row, col, dxn)
+                    row1, col1 = cellIdx1
+                    row2, col2 = cellIdx2
+                    # Also, get their group ID.
+                    grp1 = _getCellGroup(board, row1, col1)
+                    grp2 = _getCellGroup(board, row2, col2)
+
+                    # If the corner is POKE, then the two adjacent cells' group must be OPPOSITE.
+                    if board.cornerEntries[row][col] == CornerEntry.POKE:
+                        if grp1 is not None:
+                            _setCellGroup(board, row2, col2, 1 if grp1 == 0 else 0)
+                        elif grp2 is not None:
+                            _setCellGroup(board, row1, col1, 1 if grp2 == 0 else 0)
+
+                    # If the corner is SMOOTH, then the two adjacent cells' group must be EQUAL.
+                    elif board.cornerEntries[row][col] == CornerEntry.SMOOTH:
+                        if grp1 is not None:
+                            _setCellGroup(board, row2, col2, grp1)
+                        elif grp2 is not None:
+                            _setCellGroup(board, row1, col1, grp2)
 
 
-def _updateCell(board: Board, row: int, col: int, groupId: int,
-                processedCells: set[tuple[int, int]]):
+def _setCellGroup(board: Board, row: int, col: int, groupId: int) -> None:
     """
-    Update the group ID of the given cell.
-    """
-    if (row, col) in processedCells:
-        return
+    Set the cell group of the given cell. Uses recursion to also set
+    its adjacent cells' group IDs.
 
+    Arguments:
+        board: The board.
+        row: The row index of the cell.
+        col: The column index of the cell.
+        groupId: The group ID to set the cell to.
+    """
     if not BoardTools.isValidCellIdx(row, col):
-        if groupId == 1:
-            raise InvalidBoardException('Cannot set out of bounds as group 1.')
-        return
+        if groupId == 0:
+            return
+        raise InvalidBoardException('Cannot set the group ID of out of bounds to 1.')
 
-    processedCells.add((row, col))
-    if board.cellGroups[row][col] is not None and board.cellGroups[row][col] != groupId:
-        raise InvalidBoardException(f'Failed to update cell goup of {row},{col}.')
+    if board.cellGroups[row][col] is not None:
+        if board.cellGroups[row][col] == groupId:
+            return
+        raise InvalidBoardException(f'Cannot set the group ID of {row},{col} '
+                                    'to the opposite group ID.')
+
     board.cellGroups[row][col] = groupId
 
     for dxn in CardinalDirection:
+        # Look for the borders of this cell that are either BLANK or ACTIVE.
         bdrStat = board.getBorderStatus(row, col, dxn)
+        if bdrStat == BorderStatus.UNSET:
+            continue
+
+        # Get the index of the cell adjacent in this direction.
+        # If it is out of bounds, continue on.
         adjRow, adjCol = BoardTools.getCellIdxOfAdjCell(row, col, dxn)
-        if adjRow is not None and adjCol is not None:
-            if bdrStat == BorderStatus.BLANK:
-                _updateCell(board, adjRow, adjCol, groupId, processedCells)
-            elif bdrStat == BorderStatus.ACTIVE:
-                _updateCell(board, adjRow, adjCol, 1 if groupId == 0 else 0, processedCells)
+        if adjRow is None or adjCol is None:
+            continue
 
-        # Even though dxn is a CardinalDirection, we can treat its integer value
-        # as an equivalent for DiagonalDirection and use it as a list index.
+        # If the border is ACTIVE, the adjacent cell group must be OPPOSITE
+        # to this cell group.
+        if bdrStat == BorderStatus.ACTIVE:
+            _setCellGroup(board, adjRow, adjCol, 1 if groupId == 0 else 0)
 
-        # If the corner is POKE, the two adjacent cells' groups should be opposite.
-        if board.cornerEntries[row][col][dxn] == CornerEntry.POKE:
-            cellIdx1, cellIdx2 = BoardTools.getCellIndicesAdjacentToCorner(row, col, dxn)
-            row1, col1 = cellIdx1
-            row2, col2 = cellIdx2
-            grp1 = _getCellGroup(board, row1, col1)
-            grp2 = _getCellGroup(board, row2, col2)
-            if grp1 is not None:
-                _updateCell(board, row2, col2, 1 if grp1 == 0 else 0, processedCells)
-            elif grp2 is not None:
-                _updateCell(board, row1, col1, 1 if grp2 == 0 else 0, processedCells)
-
-        # If the corner is SMOOTH, the two adjacent cell's groups should be equal.
-        elif board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
-            cellIdx1, cellIdx2 = BoardTools.getCellIndicesAdjacentToCorner(row, col, dxn)
-            row1, col1 = cellIdx1
-            row2, col2 = cellIdx2
-            grp1 = _getCellGroup(board, row1, col1)
-            grp2 = _getCellGroup(board, row2, col2)
-            if grp1 is not None:
-                _updateCell(board, row2, col2, grp1, processedCells)
-            elif grp2 is not None:
-                _updateCell(board, row1, col1, grp2, processedCells)
+        # If the border is ACTIVE, the adjacent cell group must be EQUAL
+        # to this cell group.
+        elif bdrStat == BorderStatus.BLANK:
+            _setCellGroup(board, adjRow, adjCol, groupId)
 
 
 def _getCellGroup(board: Board, row: int, col: int) -> Optional[int]:
@@ -207,6 +233,6 @@ def _getCellGroup(board: Board, row: int, col: int) -> Optional[int]:
     Get the cell group of the target cell. If the cell index is out of bounds,
     the group ID is zero.
     """
-    if not BoardTools.isValidCellIdx(row, col):
+    if row is None or col is None or not BoardTools.isValidCellIdx(row, col):
         return 0
     return board.cellGroups[row][col]

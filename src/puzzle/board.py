@@ -133,12 +133,6 @@ class Board:
         bordersCopy = [bdrStatus for bdrStatus in self.borders]
         clonedBoard = Board(self.rows, self.cols, cellsCopy, bordersCopy)
         clonedBoard.pokes = self.pokes.copy()
-
-        for row in range(self.rows):
-            for col in range(self.cols):
-                for dxn in DiagonalDirection:
-                    clonedBoard.cornerEntries[row][col][dxn] = self.cornerEntries[row][col][dxn]
-
         clonedBoard.isClone = True
         return clonedBoard
 
