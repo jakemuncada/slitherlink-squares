@@ -49,11 +49,11 @@ def getOptions() -> dict:
             options['profile'] = True
         elif sys.argv[idx] in ('-v', '--verbose'):
             options['verbose'] = True
-        else:
-            if sys.argv[idx] in ('-l', '--loops') and idx + 1 < len(sys.argv):
-                options['testloops'] = int(sys.argv[idx + 1])
-            elif sys.argv[idx] in ('-i', '--index') and idx + 1 < len(sys.argv):
-                options['puzzleIndex'] = int(sys.argv[idx + 1])
+        if sys.argv[idx] in ('-l', '--loops') and idx + 1 < len(sys.argv):
+            options['testloops'] = int(sys.argv[idx + 1])
+            idx += 1
+        elif sys.argv[idx] in ('-i', '--index') and idx + 1 < len(sys.argv):
+            options['puzzleIndex'] = int(sys.argv[idx + 1])
             idx += 1
         idx += 1
 
