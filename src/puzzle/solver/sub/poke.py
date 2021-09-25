@@ -521,7 +521,6 @@ def _updateCornerEntries(board: Board) -> None:
     # If updateFlag is false, we did not find a cell to update
     # on the previous run, so we stop the loop.
     while updateFlag:
-        board.updateCellGroupCount += 1
         updateFlag = False
         # Loop through all the cells.
         for row in range(board.rows):
