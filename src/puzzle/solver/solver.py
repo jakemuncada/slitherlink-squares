@@ -576,14 +576,16 @@ class Solver():
 
         for row in range(self.board.rows):
             for col in range(self.board.cols):
-                for dxn in CardinalDirection:
-                    bdrIdx = BoardTools.getBorderIdx(row, col, dxn)
-                    if self.board.borders[bdrIdx] == BorderStatus.UNSET:
-                        doneBorders.add(bdrIdx)
-                        if self.board.cells[row][col] == 1:
-                            highPrio.append((bdrIdx, BorderStatus.ACTIVE))
-                        elif self.board.cells[row][col] == 3:
-                            highPrio.append((bdrIdx, BorderStatus.BLANK))
+                if self.board.cells[row][col] == 1 or self.board.cells[row][col] == 3:
+                    for dxn in CardinalDirection:
+                        bdrIdx = BoardTools.getBorderIdx(row, col, dxn)
+                        if self.board.borders[bdrIdx] == BorderStatus.UNSET:
+                            if self.board.cells[row][col] == 1:
+                                doneBorders.add(bdrIdx)
+                                highPrio.append((bdrIdx, BorderStatus.ACTIVE))
+                            elif self.board.cells[row][col] == 3:
+                                doneBorders.add(bdrIdx)
+                                highPrio.append((bdrIdx, BorderStatus.BLANK))
 
         for bdrIdx in range(len(self.board.borders)):
             if bdrIdx not in doneBorders:
@@ -593,11 +595,7 @@ class Solver():
         random.shuffle(highPrio)
         random.shuffle(lowPrio)
 
-        # if len(highPrio) + len(lowPrio) == 0:
-        #     if self.board.isComplete:
-        #         return []
-        #     raise AssertionError('The board is not yet complete, but no guesses were found.')
-
+        # print(len(highPrio), len(lowPrio))
         return highPrio + lowPrio
 
     ###########################################################################
