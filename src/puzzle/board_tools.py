@@ -53,6 +53,11 @@ class BoardTools:
         return _getCellBorders(BoardTools.cols, row, col)
 
     @staticmethod
+    def getCellIndicesAdjacentToCorner(row: int, col: int, dxn: DiagonalDirection) \
+            -> tuple[tuple[int, int], tuple[int, int]]:
+        return _getCellIndicesAdjacentToCorner(row, col, dxn)
+
+    @staticmethod
     def isBorderHorizontal(borderIdx: int) -> bool:
         return _isBorderHorizontal(borderIdx)
 
@@ -233,6 +238,31 @@ def _getCellBorders(cols: int, row: int, col: int) -> tuple[int, int, int, int]:
     botBdr = _getBorderIdx(cols, row, col, CardinalDirection.BOT)
     leftBdr = _getBorderIdx(cols, row, col, CardinalDirection.LEFT)
     return (topBdr, rightBdr, botBdr, leftBdr)
+
+
+@cache
+def _getCellIndicesAdjacentToCorner(row: int, col: int, dxn: DiagonalDirection) \
+        -> tuple[tuple[int, int], tuple[int, int]]:
+    """
+    Returns the cell indices of the cells adjacent to the given cell's corner.
+
+    Arguments:
+        row: The row index of the cell.
+        col: The column index of the cell.
+        dxn: The direction of the corner.
+
+    Returns:
+        The cell indices of the cells adjacent to the given cell's corner.
+    """
+    if dxn == DiagonalDirection.ULEFT:
+        return ((row - 1, col), (row, col - 1))
+    elif dxn == DiagonalDirection.URIGHT:
+        return ((row - 1, col), (row, col + 1))
+    elif dxn == DiagonalDirection.LRIGHT:
+        return ((row + 1, col), (row, col + 1))
+    elif dxn == DiagonalDirection.LLEFT:
+        return ((row + 1, col), (row, col - 1))
+    raise ValueError('Invalid DiagonalDirection.')
 
 
 @cache
