@@ -5,7 +5,6 @@ This module contains functions for solving the board.
 from typing import Union
 
 from src.puzzle.board import Board
-from src.puzzle.cell_info import CellInfo
 from src.puzzle.board_tools import BoardTools
 from src.puzzle.enums import BorderStatus, CardinalDirection, DiagonalDirection, InvalidBoardException, OptInt
 
