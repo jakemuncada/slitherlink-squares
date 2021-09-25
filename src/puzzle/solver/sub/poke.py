@@ -470,13 +470,14 @@ def solveUsingCornerEntryInfo(board: Board) -> bool:
     for row in range(board.rows):
         for col in range(board.cols):
             reqNum = board.cells[row][col]
-            hasUnset = False
+
+            hasUnsetBorder = False
             for dxn in CardinalDirection:
                 if board.borders[BoardTools.getBorderIdx(row, col, dxn)] == BorderStatus.UNSET:
-                    hasUnset = True
+                    hasUnsetBorder = True
                     break
 
-            if not hasUnset:
+            if not hasUnsetBorder:
                 continue
 
             countPoke = 0
