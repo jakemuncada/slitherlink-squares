@@ -549,21 +549,6 @@ def _updateCornerEntries(board: Board) -> None:
                             if _setCornerEntry(board, (row, col), dxn, newVal):
                                 updateFlag = True
 
-                    if reqNum == 2:
-                        # If the cell is a 2-cell and this corner is known to be POKE/SMOOTH,
-                        # also set the opposite corner to be equal to this corner.
-                        if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
-                            newVal = board.cornerEntries[row][col][dxn]
-                            if _setCornerEntry(board, (row, col), oppoDxn, newVal):
-                                updateFlag = True
-
-                            # If the cell is a 2-cell and this corner is SMOOTH,
-                            # then the two adjacent corners should be POKE.
-                            if board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
-                                for adjDxn in dxn.adjacent():
-                                    if _setCornerEntry(board, (row, col), adjDxn, CornerEntry.POKE):
-                                        updateFlag = True
-
                     # If this corner is a POKE/SMOOTH, the corresponding corner
                     # of the diagonally adjacent cell should also be updated.
                     if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
