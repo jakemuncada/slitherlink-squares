@@ -45,6 +45,21 @@ class DiagonalDirection(IntEnum):
             return DiagonalDirection.URIGHT
         elif self == DiagonalDirection.ULEFT:
             return DiagonalDirection.LRIGHT
+        raise ValueError('Invalid Diagonal Direction.')
+
+    def adjacent(self) -> tuple[DiagonalDirection, DiagonalDirection]:
+        """
+        Returns the two adjacent directions.
+        """
+        if self == DiagonalDirection.URIGHT:
+            return (DiagonalDirection.ULEFT, DiagonalDirection.LRIGHT)
+        elif self == DiagonalDirection.LRIGHT:
+            return (DiagonalDirection.URIGHT, DiagonalDirection.LLEFT)
+        elif self == DiagonalDirection.LLEFT:
+            return (DiagonalDirection.LRIGHT, DiagonalDirection.ULEFT)
+        elif self == DiagonalDirection.ULEFT:
+            return (DiagonalDirection.LLEFT, DiagonalDirection.URIGHT)
+        raise ValueError('Invalid Diagonal Direction.')
 
     def ceiling(self) -> DiagonalDirection:
         """

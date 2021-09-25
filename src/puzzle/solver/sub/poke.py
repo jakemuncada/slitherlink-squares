@@ -363,7 +363,7 @@ def isCellPokingAtDir(board: Board, cellInfo: CellInfo, dxn: DiagonalDirection) 
         activeArmsThisDxn = len([idx for idx in arms if board.borders[idx] == BorderStatus.ACTIVE])
         oppoArms = BoardTools.getArms(cellInfo.row, cellInfo.col, oppoDxn)
         activeArmsOppoDxn = len([idx for idx in oppoArms if board.borders[idx] == BorderStatus.ACTIVE])
-        
+
         if activeArmsThisDxn > 1 and activeArmsOppoDxn > 0:
             raise InvalidBoardException('2-cell is SMOOTH on one corner and POKE on the opposite corner.')
         if activeArmsThisDxn > 0 and activeArmsOppoDxn > 1:
@@ -508,52 +508,119 @@ def _updateCornerEntries(board: Board) -> None:
     """
     Update the CornerEntry types of each corner of each cell.
     """
+    # When updateFlag is true, it means that we updated
+    # a corner entry on the previous run, so we need to look at the board again
+    # to see if we can use that as a clue and update another cell.
+    # We initialize it to True so that we can start the first round.
     updateFlag = True
 
-    def setCornerEntry(cellIdx: Optional[tuple[int, int]], dxn: DiagonalDirection,
-                       newVal: CornerEntry) -> bool:
-        if cellIdx is None:
-            return False
-        row, col = cellIdx
-        if board.cornerEntries[row][col][dxn] == CornerEntry.UNKNOWN:
-            board.cornerEntries[row][col][dxn] = newVal
-            return True
-        elif board.cornerEntries[row][col][dxn] != newVal:
-            raise InvalidBoardException(f'The corner entry of cell {row},{col} '
-                                        f'at direction {dxn} cannot be set to {newVal}.')
-        return False
+    # A set of cell indices that already has no more UNKNOWN corner.
+    skipCells: set[tuple[int, int]] = set()
 
+    # If updateFlag is false, we did not find a cell to update
+    # on the previous run, so we stop the loop.
     while updateFlag:
+        board.updateCellGroupCount += 1
         updateFlag = False
+        # Loop through all the cells.
         for row in range(board.rows):
             for col in range(board.cols):
+                if (row, col) in skipCells:
+                    continue
+
                 unknownDxn = None
                 countPoke = 0
-                countSmooth = 0
                 countUnknown = 0
+                reqNum = board.cells[row][col]
+                # Loop through all the corners of the cell.
                 for dxn in DiagonalDirection:
-                    arms = BoardTools.getArms(row, col, dxn)
-                    countUnset, countActive, _ = SolverTools.getStatusCount(board, arms)
+                    # Count the cell's ACTIVE and UNSET arms at this corner.
+                    oppoDxn = dxn.opposite()
 
-                    if countUnset == 0:
-                        targetCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
-                        newVal = CornerEntry.SMOOTH if countActive % 2 == 0 else CornerEntry.POKE
-                        updateFlag = updateFlag | setCornerEntry((row, col), dxn, newVal)
-                        updateFlag = updateFlag | setCornerEntry(targetCellIdx, dxn.opposite(), newVal)
+                    # If this corner has no UNSET arm, then this corner is either POKE or SMOOTH
+                    # depending on the number of ACTIVE arms on this same corner.
+                    if board.cornerEntries[row][col][dxn] == CornerEntry.UNKNOWN:
+                        arms = BoardTools.getArms(row, col, dxn)
+                        countUnset, countActive, _ = SolverTools.getStatusCount(board, arms)
+                        if countUnset == 0:
+                            # If this corner has ODD number of ACTIVE arms, then it is POKE.
+                            # Else, if it has EVEN number of ACTIVE arms, then it is SMOOTH.
+                            newVal = CornerEntry.SMOOTH if countActive % 2 == 0 else CornerEntry.POKE
+                            if _setCornerEntry(board, (row, col), dxn, newVal):
+                                updateFlag = True
 
+                    if reqNum == 2:
+                        # If the cell is a 2-cell and this corner is known to be POKE/SMOOTH,
+                        # also set the opposite corner to be equal to this corner.
+                        if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
+                            newVal = board.cornerEntries[row][col][dxn]
+                            if _setCornerEntry(board, (row, col), oppoDxn, newVal):
+                                updateFlag = True
+
+                            # If the cell is a 2-cell and this corner is SMOOTH,
+                            # then the two adjacent corners should be POKE.
+                            if board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
+                                for adjDxn in dxn.adjacent():
+                                    if _setCornerEntry(board, (row, col), adjDxn, CornerEntry.POKE):
+                                        updateFlag = True
+
+                    # If this corner is a POKE/SMOOTH, the corresponding corner
+                    # of the diagonally adjacent cell should also be updated.
+                    if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
+                        newVal = board.cornerEntries[row][col][dxn]
+                        oppCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
+                        if _setCornerEntry(board, oppCellIdx, oppoDxn, newVal):
+                            updateFlag = True
+
+                    # Count the number of POKE and UNKNOWN corners of the cell
+                    # (to be used outside of this DiagonalDirection loop).
                     if board.cornerEntries[row][col][dxn] == CornerEntry.POKE:
                         countPoke += 1
-                    elif board.cornerEntries[row][col][dxn] == CornerEntry.SMOOTH:
-                        countSmooth += 1
                     elif board.cornerEntries[row][col][dxn] == CornerEntry.UNKNOWN:
                         countUnknown += 1
                         unknownDxn = dxn
 
-                    if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
-                        newVal = board.cornerEntries[row][col][dxn]
-                        oppCellIdx = BoardTools.getCellIdxAtDiagCorner(row, col, dxn)
-                        updateFlag = updateFlag | setCornerEntry(oppCellIdx, dxn.opposite(), newVal)
+                # Now that all the corners of the cell have been processed,
+                # we look at the number of UNKNOWN and POKE corners.
 
+                # If the cell only has one UNKNOWN corner,
+                # we can already deduce if it is POKE or SMOOTH.
                 if countUnknown == 1:
+                    # The number of POKE corners of a cell should always be EVEN.
+                    # So we set the UNKNOWN corner to POKE such that
+                    # the total POKE corners will be EVEN.
                     newCornerEntry = CornerEntry.SMOOTH if countPoke % 2 == 0 else CornerEntry.POKE
-                    updateFlag = updateFlag | setCornerEntry((row, col), unknownDxn, newCornerEntry)
+                    _setCornerEntry(board, (row, col), unknownDxn, newCornerEntry)
+                    updateFlag = True
+
+                # If this cell has no UNKNOWN corners,
+                # skip processing it on the subsequent runs.
+                if countUnknown == 0:
+                    skipCells.add((row, col))
+
+
+def _setCornerEntry(board: Board, cellIdx: Optional[tuple[int, int]],
+                    dxn: DiagonalDirection, newVal: CornerEntry) -> bool:
+    """
+    Set the specified corner entry.
+
+    Arguments:
+        board: The board.
+        cellIdx: The index of the cell. May be None.
+        dxn: The direction of the corner to set.
+        newVal: The new CornerEntry value.
+
+    Returns:
+        True if a cell was successfully changed from UNSET to the new value.
+        False otherwise.
+    """
+    if cellIdx is None:
+        return False
+    row, col = cellIdx
+    if board.cornerEntries[row][col][dxn] == newVal:
+        return False
+    if board.cornerEntries[row][col][dxn] == CornerEntry.UNKNOWN:
+        board.cornerEntries[row][col][dxn] = newVal
+        return True
+    raise InvalidBoardException(f'The corner entry of cell {row},{col} '
+                                f'at direction {dxn} cannot be set to {newVal}.')
