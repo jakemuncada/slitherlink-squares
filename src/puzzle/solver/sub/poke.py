@@ -510,23 +510,20 @@ def _updateCornerEntries(board: Board) -> None:
     """
     Update the CornerEntry types of each corner of each cell.
     """
-    # A set of cell indices that already has no more UNKNOWN corner.
-    skipCells: set[tuple[int, int]] = set()
-
     # Loop through all the cells.
     for row in range(board.rows):
         for col in range(board.cols):
-            _updateCell(board, row, col, skipCells)
+            _updateCell(board, row, col)
 
 
-def _updateCell(board: Board, row: int, col: int, skipCells: set[int]) -> None:
+def _updateCell(board: Board, row: int, col: int) -> None:
     """
     Update the given cell's corner entries.
     """
     if not BoardTools.isValidCellIdx(row, col):
         return
 
-    if (row, col) in skipCells:
+    if (row, col) in board.knownCornerEntries:
         return
 
     unknownDxn = None
@@ -547,8 +544,8 @@ def _updateCell(board: Board, row: int, col: int, skipCells: set[int]) -> None:
                 # Else, if it has EVEN number of ACTIVE arms, then it is SMOOTH.
                 newVal = CornerEntry.SMOOTH if countActive % 2 == 0 else CornerEntry.POKE
                 if _setCornerEntry(board, (row, col), dxn, newVal):
-                    _updateCell(board, row - 1, col - 1, skipCells)
-                    _updateCell(board, row - 1, col + 1, skipCells)
+                    _updateCell(board, row - 1, col - 1)
+                    _updateCell(board, row - 1, col + 1)
 
         # If this corner is a POKE/SMOOTH, the corresponding corner
         # of the diagonally adjacent cell should also be updated.
@@ -558,11 +555,11 @@ def _updateCell(board: Board, row: int, col: int, skipCells: set[int]) -> None:
             if oppCellIdx is not None:
                 oppCellRow, oppCellCol = oppCellIdx
                 if _setCornerEntry(board, oppCellIdx, oppoDxn, newVal):
-                    _updateCell(board, oppCellRow, oppCellCol, skipCells)
-                    _updateCell(board, oppCellRow - 1, oppCellCol - 1, skipCells)
-                    _updateCell(board, oppCellRow - 1, oppCellCol + 1, skipCells)
-                    _updateCell(board, oppCellRow + 1, oppCellCol - 1, skipCells)
-                    _updateCell(board, oppCellRow + 1, oppCellCol + 1, skipCells)
+                    _updateCell(board, oppCellRow, oppCellCol)
+                    _updateCell(board, oppCellRow - 1, oppCellCol - 1)
+                    _updateCell(board, oppCellRow - 1, oppCellCol + 1)
+                    _updateCell(board, oppCellRow + 1, oppCellCol - 1)
+                    _updateCell(board, oppCellRow + 1, oppCellCol + 1)
 
         # Count the number of POKE and UNKNOWN corners of the cell
         # (to be used outside of this DiagonalDirection loop).
@@ -583,13 +580,13 @@ def _updateCell(board: Board, row: int, col: int, skipCells: set[int]) -> None:
         # the total POKE corners will be EVEN.
         newCornerEntry = CornerEntry.SMOOTH if countPoke % 2 == 0 else CornerEntry.POKE
         _setCornerEntry(board, (row, col), unknownDxn, newCornerEntry)
-        _updateCell(board, row - 1, col - 1, skipCells)
-        _updateCell(board, row - 1, col + 1, skipCells)
+        _updateCell(board, row - 1, col - 1)
+        _updateCell(board, row - 1, col + 1)
 
     # If this cell has no UNKNOWN corners,
     # skip processing it on the subsequent runs.
     elif countUnknown == 0:
-        skipCells.add((row, col))
+        board.knownCornerEntries.add((row, col))
 
 
 def _setCornerEntry(board: Board, cellIdx: Optional[tuple[int, int]],

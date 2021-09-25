@@ -49,6 +49,7 @@ class Board:
         self.cornerEntries: list[list[list[CornerEntry]]] = \
             [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN]
               for _ in range(self.cols)] for _ in range(self.rows)]
+        self.knownCornerEntries: set[int] = set()
 
         self.reqCells = set()
         if cells is not None:
@@ -101,6 +102,7 @@ class Board:
         Reset the board to its initial state.
         """
         self.pokes = set()
+        self.knownCornerEntries = set()
 
         self.cornerEntries: list[list[list[CornerEntry]]] = \
             [[[CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN, CornerEntry.UNKNOWN]
