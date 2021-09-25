@@ -18,6 +18,7 @@ TEST_LOOPS = 30
 def play(puzzleIdx: Optional[int] = None):
     """Main function."""
     puzzleIdx = puzzleIdx if puzzleIdx is not None else BOARD_IDX
+    print(f'Creating Puzzle {puzzleIdx}...')
     board, _ = createBoard(puzzleIdx)
     control = Control(board)
     control.start()
