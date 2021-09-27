@@ -406,8 +406,8 @@ class Solver():
 
             connBdrList = BoardTools.getConnectedBordersList(borderIdx)
             for connBdrIdx in connBdrList:
-                if SolverTools.isContinuous(board, borderIdx, connBdrIdx):
-                    if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
+                if board.borders[connBdrIdx] == BorderStatus.ACTIVE:
+                    if SolverTools.isContinuous(board, borderIdx, connBdrIdx):
                         if Solver.setBorder(board, borderIdx, BorderStatus.ACTIVE):
                             return True
 
