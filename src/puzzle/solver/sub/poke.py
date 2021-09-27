@@ -493,12 +493,12 @@ def solveUsingCornerEntryInfo(board: Board) -> bool:
                     if handleSmoothCorner(board, row, col, dxn):
                         foundMove = True
 
-                if reqNum == 0 and countSmooth < 4:
-                    raise InvalidBoardException('0-Cells should have four smooth corners.')
-                elif reqNum == 3 or reqNum == 1:
-                    if countPoke > 2 or countSmooth > 2:
-                        raise InvalidBoardException('1-Cells and 3-Cells cannot have more than '
-                                                    'two poke corners or two smooth corners.')
+            if reqNum == 0 and countSmooth < 4:
+                raise InvalidBoardException('0-Cells should have four smooth corners.')
+            elif reqNum == 3 or reqNum == 1:
+                if countPoke > 2 or countSmooth > 2:
+                    raise InvalidBoardException('1-Cells and 3-Cells cannot have more than '
+                                                'two poke corners or two smooth corners.')
     return foundMove
 
 
