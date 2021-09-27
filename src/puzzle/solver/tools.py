@@ -126,24 +126,37 @@ class SolverTools:
 
         currRow, currCol = currCellIdx
 
+        # If the cell coordinates are not valid, return False.
         if not BoardTools.isValidCellIdx(currRow, currCol):
             return False
 
+        # If the cell is a 3-cell, it automatically indirectly pokes.
         if board.cells[currRow][currCol] == 3:
             return True
 
+        # Count the number of active borders on the opposite of the propagation direction.
         cornerBdrs = BoardTools.getCornerBorderIndices(currRow, currCol, dxn.opposite())
         _, countActive, _ = SolverTools.getStatusCount(board, cornerBdrs)
 
+        # If the number of active borders on the opposite of the propagation direction
+        # is more than 1, it is a SMOOTH corner, so we shouldn't have checked for indirect poke.
         if countActive > 1:
             raise InvalidBoardException('Checking for INDIRECT poking, but found '
                                         f'more than one active border: {cornerBdrs}')
 
+        # If it has exactly one ACTIVE border, then it is poking.
         if countActive == 1:
             return True
 
+        # All cells other than 2-cells do NOT propagate.
         if board.cells[currRow][currCol] != 2:
             return False
+
+        # Before propagating, we check if this cell is a 2-cell
+        # with a BLANK border on the propagation direction.
+        bdr1, bdr2 = BoardTools.getCornerBorderIndices(currRow, currCol, dxn)
+        if board.borders[bdr1] == BorderStatus.BLANK or board.borders[bdr2] == BorderStatus.BLANK:
+            return True
 
         nextCellIdx = BoardTools.getCellIdxAtDiagCorner(currRow, currCol, dxn)
         return SolverTools.isCellIndirectPokedByPropagation(board, nextCellIdx, dxn)

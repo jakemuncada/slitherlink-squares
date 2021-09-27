@@ -13,7 +13,7 @@ from src.puzzle.board_tools import BoardTools
 from src.puzzle.solver.tools import SolverTools
 from src.puzzle.solver.initial import solveInit
 from src.puzzle.solver.solve_stats import SolveStats
-from src.puzzle.enums import BorderStatus, CardinalDirection, \
+from src.puzzle.enums import BorderStatus, CardinalDirection, CornerEntry, \
     DiagonalDirection, InvalidBoardException
 
 
@@ -358,6 +358,8 @@ class Solver():
         if cellInfo.reqNum == 3 and cellInfo.bdrUnsetCount > 0:
             # Check if the 3-cell was indirectly poked by a 2-cell (poke by propagation).
             for dxn in DiagonalDirection:
+                if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
+                    continue
                 oppoDir = dxn.opposite()
                 bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
                 bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
@@ -371,6 +373,8 @@ class Solver():
 
         if cellInfo.reqNum == 2 and cellInfo.bdrBlankCount == 1 and cellInfo.bdrUnsetCount > 0:
             for dxn in DiagonalDirection:
+                if board.cornerEntries[row][col][dxn] != CornerEntry.UNKNOWN:
+                    continue
                 oppoDir = dxn.opposite()
                 bdrStat1 = board.borders[cellInfo.cornerBdrs[oppoDir][0]]
                 bdrStat2 = board.borders[cellInfo.cornerBdrs[oppoDir][1]]
